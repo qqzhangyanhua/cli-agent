@@ -14,7 +14,8 @@ from agent_nodes import (
     mcp_tool_planner,
     mcp_tool_executor,
     response_formatter,
-    question_answerer
+    question_answerer,
+    git_commit_generator
 )
 
 
@@ -31,6 +32,8 @@ def route_by_intent(state: AgentState) -> str:
         return "plan_steps"
     elif intent == "mcp_tool_call":
         return "plan_mcp_tool"
+    elif intent == "git_commit":
+        return "generate_git_commit"
     elif intent == "question":
         return "answer_question"
     else:
@@ -63,6 +66,7 @@ def build_agent() -> StateGraph:
     workflow.add_node("execute_multi_commands", multi_command_executor)
     workflow.add_node("plan_mcp_tool", mcp_tool_planner)
     workflow.add_node("execute_mcp_tool", mcp_tool_executor)
+    workflow.add_node("generate_git_commit", git_commit_generator)  # Git commit生成
     workflow.add_node("format_response", response_formatter)
     workflow.add_node("answer_question", question_answerer)
     
@@ -77,6 +81,7 @@ def build_agent() -> StateGraph:
             "generate_command": "generate_command",
             "plan_steps": "plan_steps",
             "plan_mcp_tool": "plan_mcp_tool",
+            "generate_git_commit": "generate_git_commit",  # Git commit路径
             "answer_question": "answer_question",
             "format_response": "format_response"
         }
@@ -101,6 +106,9 @@ def build_agent() -> StateGraph:
     # MCP工具路径
     workflow.add_edge("plan_mcp_tool", "execute_mcp_tool")
     workflow.add_edge("execute_mcp_tool", "format_response")
+    
+    # Git commit路径
+    workflow.add_edge("generate_git_commit", END)  # 直接结束，不需要format
     
     # 结束节点
     workflow.add_edge("format_response", END)

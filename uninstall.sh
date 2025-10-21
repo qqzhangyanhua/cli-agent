@@ -35,6 +35,7 @@ MODULES=(
     "mcp_manager.py"
     "mcp_filesystem.py"
     "mcp_config.json"
+    "git_tools.py"
 )
 
 for module in "${MODULES[@]}"; do

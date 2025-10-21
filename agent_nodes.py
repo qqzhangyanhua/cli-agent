@@ -10,6 +10,7 @@ from agent_memory import memory
 from agent_utils import execute_terminal_command
 from agent_llm import llm, llm_code
 from mcp_manager import mcp_manager
+from git_tools import git_tools
 
 
 # ============================================
@@ -28,20 +29,21 @@ def intent_analyzer(state: AgentState) -> dict:
 当前用户输入: {user_input}
 
 判断规则:
+- 如果用户想生成Git commit消息、生成commit日志 -> git_commit
 - 如果用户想读取文件、写入文件、列出目录、搜索文件、获取文件信息 -> mcp_tool_call
 - 如果用户想截图、操作剪贴板、执行桌面命令 -> mcp_tool_call
 - 如果用户想执行系统命令、运行程序 -> terminal_command
 - 如果用户需要创建代码文件并执行、或者需要多个步骤完成任务 -> multi_step_command
 - 如果用户在问问题、寻求解释、需要建议、或者引用之前的对话 -> question
 
-只返回一个词: 'mcp_tool_call', 'terminal_command', 'multi_step_command' 或 'question'
+只返回一个词: 'git_commit', 'mcp_tool_call', 'terminal_command', 'multi_step_command' 或 'question'
 
 意图:"""
 
     result = llm.invoke([HumanMessage(content=prompt)])
     intent = result.content.strip().lower()
 
-    if intent not in ["mcp_tool_call", "terminal_command", "multi_step_command", "question"]:
+    if intent not in ["git_commit", "mcp_tool_call", "terminal_command", "multi_step_command", "question"]:
         intent = "question"
 
     print(f"\n[意图分析] {user_input[:50]}...")
@@ -405,3 +407,109 @@ def format_mcp_success_response(tool_name: str, result: dict) -> str:
         response += f"结果:\n{json.dumps(result, ensure_ascii=False, indent=2)}"
     
     return response
+
+
+# ============================================
+# Git相关节点
+# ============================================
+
+def git_commit_generator(state: AgentState) -> dict:
+    """
+    生成Git commit消息
+    分析git diff并生成专业的commit消息
+    """
+    print(f"[Git分析] 分析代码变更...")
+    
+    # 分析Git变更
+    analysis = git_tools.analyze_changes()
+    
+    if not analysis["success"]:
+        print(f"[Git分析] ❌ {analysis.get('error', '分析失败')}")
+        return {
+            "response": analysis.get('error', '❌ Git分析失败')
+        }
+    
+    print(f"[Git分析] ✅ 分析完成")
+    print(f"[Git分析] {analysis['summary']}")
+    print(f"[Git分析] 变更文件: {len(analysis['files_changed'])} 个")
+    
+    # 准备prompt
+    diff_content = ""
+    if analysis['has_staged']:
+        diff_content = analysis['staged_diff']
+        diff_type = "已暂存(staged)"
+    elif analysis['has_unstaged']:
+        diff_content = analysis['unstaged_diff']
+        diff_type = "未暂存(unstaged)"
+    else:
+        # 使用git status
+        diff_content = analysis['status']
+        diff_type = "状态"
+    
+    # 截取diff（避免太长）
+    max_diff_length = 4000
+    if len(diff_content) > max_diff_length:
+        diff_content = diff_content[:max_diff_length] + "\n\n... (diff太长，已截断)"
+    
+    # 获取最近的commits作为参考
+    recent_commits_str = "\n".join(analysis.get('recent_commits', [])[:3])
+    
+    prompt = f"""你是一个专业的Git commit消息生成器。根据代码变更生成规范的commit消息。
+
+代码变更({diff_type}):
+```
+{diff_content}
+```
+
+变更的文件({len(analysis['files_changed'])}个):
+{chr(10).join(['- ' + f for f in analysis['files_changed'][:10]])}
+
+最近的commit记录(参考风格):
+{recent_commits_str if recent_commits_str else '(暂无历史commit)'}
+
+要求:
+1. 遵循Conventional Commits规范
+2. 使用中文描述
+3. 格式: <type>: <subject>
+4. type可以是: feat(新功能)、fix(修复)、docs(文档)、style(格式)、refactor(重构)、test(测试)、chore(构建/工具)
+5. subject要简洁明了，不超过50个字
+6. 如果变更复杂，可以添加body详细说明
+
+请生成commit消息(只返回commit消息内容，不要解释):"""
+
+    print(f"[Commit生成] 使用模型: {LLM_CONFIG2['model']}")
+    
+    # 调用LLM生成
+    result = llm_code.invoke([HumanMessage(content=prompt)])
+    commit_message = result.content.strip()
+    
+    # 清理可能的markdown格式
+    if commit_message.startswith("```"):
+        lines = commit_message.split('\n')
+        commit_message = '\n'.join(lines[1:-1]) if len(lines) > 2 else commit_message
+    
+    print(f"[Commit生成] ✅ 生成完成")
+    
+    # 格式化响应
+    response = "📝 Git Commit消息生成完成\n\n"
+    response += "=" * 60 + "\n"
+    response += commit_message + "\n"
+    response += "=" * 60 + "\n\n"
+    
+    response += f"📊 变更摘要:\n"
+    response += f"  • 变更文件: {len(analysis['files_changed'])} 个\n"
+    if analysis['files_changed']:
+        response += f"  • 主要文件:\n"
+        for f in analysis['files_changed'][:5]:
+            response += f"    - {f}\n"
+        if len(analysis['files_changed']) > 5:
+            response += f"    ... 还有 {len(analysis['files_changed']) - 5} 个文件\n"
+    
+    response += f"\n💡 使用方法:\n"
+    if analysis['has_staged']:
+        response += f"  git commit -m \"{commit_message.split(chr(10))[0]}\"\n"
+    else:
+        response += f"  git add .  # 先暂存变更\n"
+        response += f"  git commit -m \"{commit_message.split(chr(10))[0]}\"\n"
+    
+    return {"response": response}

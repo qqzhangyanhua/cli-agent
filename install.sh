@@ -53,6 +53,7 @@ MODULES=(
     "mcp_manager.py"
     "mcp_filesystem.py"
     "mcp_config.json"
+    "git_tools.py"
 )
 
 # 将模块复制到脚本同目录（让ai-agent能找到）
