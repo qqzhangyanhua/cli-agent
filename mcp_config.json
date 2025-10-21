@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "desktop-commander": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@wonderwhy-er/desktop-commander",
+        "--key",
+        "0d9b55c7-aaab-4e81-a278-4f2148647b71"
+      ]
+    }
+  }
+}
