@@ -78,3 +78,7 @@ class AgentState(TypedDict):
     mcp_tool: str
     mcp_params: dict
     mcp_result: str
+    # 文件引用相关字段
+    original_input: str
+    referenced_files: list
+    file_contents: dict

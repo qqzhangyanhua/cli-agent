@@ -5,6 +5,7 @@
 from langgraph.graph import StateGraph, END
 from agent_config import AgentState
 from agent_nodes import (
+    file_reference_processor,
     intent_analyzer,
     command_generator,
     command_executor,
@@ -58,6 +59,7 @@ def build_agent() -> StateGraph:
     workflow = StateGraph(AgentState)
     
     # 添加所有节点
+    workflow.add_node("process_file_references", file_reference_processor)
     workflow.add_node("analyze_intent", intent_analyzer)
     workflow.add_node("generate_command", command_generator)
     workflow.add_node("execute_command", command_executor)
@@ -71,7 +73,10 @@ def build_agent() -> StateGraph:
     workflow.add_node("answer_question", question_answerer)
     
     # 设置入口
-    workflow.set_entry_point("analyze_intent")
+    workflow.set_entry_point("process_file_references")
+    
+    # 文件引用处理后进入意图分析
+    workflow.add_edge("process_file_references", "analyze_intent")
     
     # 意图路由
     workflow.add_conditional_edges(

@@ -5,6 +5,7 @@
 from agent_config import LLM_CONFIG, LLM_CONFIG2
 from agent_memory import memory
 from mcp_manager import mcp_manager
+from file_reference_parser import get_file_suggestions
 
 
 def print_header():
@@ -17,6 +18,7 @@ def print_header():
     print("  • 创建和执行代码文件")
     print("  • 智能问答")
     print("  • 对话记忆（记住上下文）")
+    print("  • @ 文件引用（交互式文件选择）")
     print("\n🔌 MCP功能:")
     print("  • 文件系统: 读取/写入/列出/搜索文件")
     print("  • 桌面控制: 截图/剪贴板/执行命令")
@@ -37,6 +39,7 @@ def print_header():
     print("  • 'commands' - 查看命令执行历史")
     print("  • 'models' - 查看当前模型配置")
     print("  • 'tools' - 查看MCP工具列表")
+    print("  • 'files' - 查看 @ 文件引用功能说明")
     print("\n" + "=" * 80 + "\n")
 
 
@@ -136,6 +139,57 @@ def handle_special_commands(user_input: str) -> bool:
         print("   • '列出当前目录的所有Python文件'")
         print("   • '搜索包含LLM_CONFIG的文件'")
         print("   • '写入内容到test.txt文件'")
+        print("─" * 80 + "\n")
+        return False
+    
+    # 查看文件引用功能说明
+    if user_input_lower in ['files', '文件', '@']:
+        print("\n📁 @ 文件引用功能说明:")
+        print("─" * 80)
+        print("\n🎯 基本用法:")
+        print("  • 输入 @ 启动文件选择器")
+        print("  • @readme 快速搜索匹配文件")
+        print("  • 读取 @README.md")
+        print("  • @config.py 的配置项有哪些？")
+        print("  • 编辑 @src/main.py 添加日志功能")
+        print("  • 比较 @old.txt 和 @new.txt 的差异")
+        
+        print("\n📝 支持的语法:")
+        print("  • @filename.ext        - 智能匹配文件名")
+        print("  • @./path/file.ext     - 相对路径")
+        print("  • @/absolute/path      - 绝对路径")
+        print("  • @*.py                - 通配符匹配")
+        print("  • @folder/             - 目录引用")
+        
+        print("\n🔍 交互式选择:")
+        print("  • 输入 @ 显示文件列表")
+        print("  • 数字快速选择文件")
+        print("  • 实时搜索和过滤")
+        print("  • 支持分页浏览")
+        print("  • 显示文件图标和大小")
+        
+        # 显示当前目录的一些文件作为示例
+        suggestions = get_file_suggestions()
+        if suggestions:
+            print(f"\n💡 当前目录可用文件 (前10个):")
+            for i, file in enumerate(suggestions[:10], 1):
+                print(f"   {i:2d}. @{file}")
+        
+        print("\n✨ 功能特性:")
+        print("  • 自动读取文件内容到上下文")
+        print("  • 支持多文件同时引用")
+        print("  • 与所有AI功能无缝集成")
+        print("  • 智能错误处理和建议")
+        
+        print("\n🚀 使用示例:")
+        print("  👤 用户: @")
+        print("  🤖 助手: [显示交互式文件选择器]")
+        print()
+        print("  👤 用户: @read")
+        print("  🤖 助手: [显示匹配'read'的文件列表]")
+        print()
+        print("  👤 用户: 读取 @README.md")
+        print("  🤖 助手: [自动读取README.md内容并分析]")
         print("─" * 80 + "\n")
         return False
     

@@ -25,8 +25,69 @@ from agent_config import AgentState
 from agent_memory import memory
 from agent_workflow import build_agent
 from agent_ui import print_header, handle_special_commands
+from file_reference_parser import update_working_directory
+from interactive_file_selector import (
+    interactive_file_select, 
+    quick_file_select, 
+    update_selector_working_directory
+)
 
 __version__ = "1.0.0"
+
+
+def smart_input_handler(prompt: str = "👤 你: ") -> str:
+    """智能输入处理器，支持 @ 文件选择"""
+    while True:
+        try:
+            user_input = input(prompt).strip()
+            
+            # 检查是否只输入了 @
+            if user_input == "@":
+                print("\n🎯 启动文件选择器...")
+                selected_file = interactive_file_select("选择要引用的文件")
+                if selected_file:
+                    # 重新提示用户输入，并预填充选择的文件
+                    print(f"\n✅ 已选择文件: @{selected_file}")
+                    new_prompt = f"👤 你 (已选择 @{selected_file}): "
+                    additional_input = input(new_prompt).strip()
+                    if additional_input:
+                        return f"@{selected_file} {additional_input}"
+                    else:
+                        return f"读取 @{selected_file}"
+                else:
+                    print("🔄 继续输入...")
+                    continue
+            
+            # 检查是否以 @ 开头但不完整
+            elif user_input.startswith("@") and len(user_input) > 1:
+                # 提取 @ 后的部分作为搜索条件
+                search_term = user_input[1:].split()[0]  # 取第一个词作为文件名
+                remaining_text = user_input[len(search_term)+1:].strip()
+                
+                # 如果搜索词看起来不完整，提供快速选择
+                if len(search_term) < 3 or not any(c in search_term for c in './\\'):
+                    print(f"\n🔍 搜索文件: '{search_term}'...")
+                    selected_file = quick_file_select(search_term)
+                    if selected_file:
+                        if remaining_text:
+                            return f"@{selected_file} {remaining_text}"
+                        else:
+                            # 询问用户要做什么
+                            action = input(f"👤 对 @{selected_file} 要做什么? ").strip()
+                            if action:
+                                return f"@{selected_file} {action}"
+                            else:
+                                return f"读取 @{selected_file}"
+                    else:
+                        print("🔄 继续输入...")
+                        continue
+            
+            # 普通输入，直接返回
+            return user_input
+            
+        except (KeyboardInterrupt, EOFError):
+            print("\n\n👋 检测到中断信号，退出程序...\n")
+            sys.exit(0)
 
 
 def parse_arguments():
@@ -112,7 +173,10 @@ def execute_single_command(command: str, quiet: bool = False) -> int:
             "chat_history": [],
             "mcp_tool": "",
             "mcp_params": {},
-            "mcp_result": ""
+            "mcp_result": "",
+            "original_input": "",
+            "referenced_files": [],
+            "file_contents": {}
         }
         
         # 执行工作流
@@ -160,8 +224,8 @@ def interactive_mode(quiet: bool = False, no_memory: bool = False):
     
     while True:
         try:
-            # 获取用户输入
-            user_input = input("👤 你: ").strip()
+            # 使用智能输入处理器获取用户输入
+            user_input = smart_input_handler("👤 你: ")
             
             if not user_input:
                 continue
@@ -191,7 +255,10 @@ def interactive_mode(quiet: bool = False, no_memory: bool = False):
                 "chat_history": [],
                 "mcp_tool": "",
                 "mcp_params": {},
-                "mcp_result": ""
+                "mcp_result": "",
+                "original_input": "",
+                "referenced_files": [],
+                "file_contents": {}
             }
             
             # 执行工作流
@@ -226,11 +293,19 @@ def main():
     if args.working_dir:
         try:
             os.chdir(args.working_dir)
+            # 同步文件引用解析器的工作目录
+            update_working_directory(args.working_dir)
+            update_selector_working_directory(args.working_dir)
             if not args.quiet:
                 print(f"📂 工作目录: {os.getcwd()}")
         except Exception as e:
             print(f"❌ 无法切换到目录 {args.working_dir}: {e}", file=sys.stderr)
             return 1
+    else:
+        # 确保文件引用解析器使用当前目录
+        current_dir = os.getcwd()
+        update_working_directory(current_dir)
+        update_selector_working_directory(current_dir)
     
     # 如果禁用记忆，清空记忆
     if args.no_memory:

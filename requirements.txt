@@ -1,0 +1,15 @@
+# AI智能体核心依赖
+langgraph>=0.0.40
+langchain-core>=0.1.0
+langchain-openai>=0.0.5
+
+# HTTP客户端
+httpx>=0.24.0
+requests>=2.28.0
+
+# 数据处理
+python-dotenv>=0.19.0
+
+# 开发和测试 (可选)
+# pytest>=7.0.0
+# black>=22.0.0
