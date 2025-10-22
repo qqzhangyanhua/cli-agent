@@ -21,90 +21,99 @@ from todo_manager import todo_manager
 # 文件引用预处理节点
 # ============================================
 
+
 def file_reference_processor(state: AgentState) -> dict:
     """处理文件引用，解析 @ 语法并读取文件内容"""
     user_input = state["user_input"]
-    
+
     print(f"\n[文件引用] 检查输入中的 @ 引用...")
-    
+
     # 解析文件引用
     processed_input, file_references = parse_file_references(user_input)
-    
+
     file_contents = {}
     referenced_files = []
-    
+
     if file_references:
         print(f"[文件引用] 发现 {len(file_references)} 个文件引用")
-        
+
         # 显示引用摘要
         summary = file_parser.format_reference_summary(file_references)
         print(summary)
-        
+
         # 读取文件内容
         for ref in file_references:
             if ref.exists and not ref.is_directory:
                 try:
                     # 使用 MCP 文件系统工具读取文件
                     result = mcp_manager.call_tool(
-                        "filesystem", 
-                        "read_file", 
-                        {"path": ref.file_path}
+                        "filesystem", "read_file", {"path": ref.file_path}
                     )
-                    
+
                     if result.get("success"):
                         content = result.get("content", "")
                         file_contents[ref.file_path] = content
-                        referenced_files.append({
-                            "path": ref.file_path,
-                            "original_ref": ref.original_text,
-                            "confidence": ref.match_confidence,
-                            "size": len(content)
-                        })
-                        print(f"[文件引用] ✅ 已读取: {ref.file_path} ({len(content)} 字符)")
+                        referenced_files.append(
+                            {
+                                "path": ref.file_path,
+                                "original_ref": ref.original_text,
+                                "confidence": ref.match_confidence,
+                                "size": len(content),
+                            }
+                        )
+                        print(
+                            f"[文件引用] ✅ 已读取: {ref.file_path} ({len(content)} 字符)"
+                        )
                     else:
                         print(f"[文件引用] ❌ 读取失败: {ref.file_path}")
-                        
+
                 except Exception as e:
                     print(f"[文件引用] ❌ 读取错误 {ref.file_path}: {str(e)}")
-            
+
             elif ref.exists and ref.is_directory:
                 # 处理目录引用
                 try:
                     result = mcp_manager.call_tool(
-                        "filesystem", 
-                        "list_directory", 
-                        {"path": ref.file_path}
+                        "filesystem", "list_directory", {"path": ref.file_path}
                     )
-                    
+
                     if result.get("success"):
                         dir_content = result.get("entries", [])
-                        file_contents[ref.file_path] = f"目录内容: {', '.join(dir_content)}"
-                        referenced_files.append({
-                            "path": ref.file_path,
-                            "original_ref": ref.original_text,
-                            "confidence": ref.match_confidence,
-                            "type": "directory",
-                            "entries": len(dir_content)
-                        })
-                        print(f"[文件引用] 📁 目录: {ref.file_path} ({len(dir_content)} 项)")
-                        
+                        file_contents[ref.file_path] = (
+                            f"目录内容: {', '.join(dir_content)}"
+                        )
+                        referenced_files.append(
+                            {
+                                "path": ref.file_path,
+                                "original_ref": ref.original_text,
+                                "confidence": ref.match_confidence,
+                                "type": "directory",
+                                "entries": len(dir_content),
+                            }
+                        )
+                        print(
+                            f"[文件引用] 📁 目录: {ref.file_path} ({len(dir_content)} 项)"
+                        )
+
                 except Exception as e:
                     print(f"[文件引用] ❌ 目录读取错误 {ref.file_path}: {str(e)}")
-            
+
             else:
                 print(f"[文件引用] ⚠️  文件不存在: {ref.file_path}")
                 # 提供建议
-                suggestions = file_parser.get_file_suggestions(ref.file_path.split('/')[-1])
+                suggestions = file_parser.get_file_suggestions(
+                    ref.file_path.split("/")[-1]
+                )
                 if suggestions:
                     print(f"[文件引用] 💡 建议的文件: {', '.join(suggestions[:3])}")
-    
+
     # 更新状态
     return {
         **state,
         "original_input": user_input,
         "user_input": processed_input,
         "referenced_files": referenced_files,
-        "file_contents": file_contents
+        "file_contents": file_contents,
     }
 
 
@@ -112,23 +121,51 @@ def file_reference_processor(state: AgentState) -> dict:
 # 意图分析和规划节点
 # ============================================
 
+
 def intent_analyzer(state: AgentState) -> dict:
     """分析用户意图（带上下文和文件引用）"""
     user_input = state["user_input"]
     context = memory.get_context_string()
-    
+
     # 先进行基于规则的快速判断（提高准确率）
     user_input_lower = user_input.lower()
 
     # 查询待办的关键词
     query_keywords = [
-        '有什么', '要做什么', '做什么', '待办', '任务', '安排',
-        '查看', '看看', '有哪些', '什么事', '日程'
+        "有什么",
+        "要做什么",
+        "做什么",
+        "待办",
+        "任务",
+        "安排",
+        "查看",
+        "看看",
+        "有哪些",
+        "什么事",
+        "日程",
     ]
 
     # 时间相关词汇（用于判断是否涉及时间）
-    time_keywords = ['今天', '明天', '后天', '周一', '周二', '周三', '周四', '周五', '周六', '周日', '下周',
-                     '点', '时', '上午', '下午', '早上', '晚上', '中午']
+    time_keywords = [
+        "今天",
+        "明天",
+        "后天",
+        "周一",
+        "周二",
+        "周三",
+        "周四",
+        "周五",
+        "周六",
+        "周日",
+        "下周",
+        "点",
+        "时",
+        "上午",
+        "下午",
+        "早上",
+        "晚上",
+        "中午",
+    ]
 
     # 规则1: 如果包含查询关键词 + 时间词，很可能是查询待办
     has_query_keyword = any(kw in user_input_lower for kw in query_keywords)
@@ -144,13 +181,14 @@ def intent_analyzer(state: AgentState) -> dict:
     # 例如："明天开会"、"今天18点给陈龙打电话"
     if has_time_word and not has_query_keyword:
         # 排除疑问句（以问号结尾）
-        if not user_input.strip().endswith('？') and not user_input.strip().endswith('?'):
+        if not user_input.strip().endswith("？") and not user_input.strip().endswith(
+            "?"
+        ):
             print(f"\n[意图分析] {user_input[:50]}...")
             print(f"           规则匹配: add_todo")
             print(f"           意图: add_todo")
             return {"intent": "add_todo"}
 
-    
     # 如果规则没有匹配，使用 LLM 分析
     # 构建文件引用上下文
     file_context = ""
@@ -158,7 +196,7 @@ def intent_analyzer(state: AgentState) -> dict:
         file_context = "\n\n📁 用户引用的文件:\n"
         for ref in state["referenced_files"]:
             file_context += f"- {ref['path']} (来自 {ref['original_ref']})\n"
-        
+
         # 添加文件内容摘要
         if state.get("file_contents"):
             file_context += "\n📄 文件内容已加载，可以直接分析和操作这些文件。\n"
@@ -211,7 +249,15 @@ def intent_analyzer(state: AgentState) -> dict:
     result = llm.invoke([HumanMessage(content=prompt)])
     intent = result.content.strip().lower()
 
-    if intent not in ["add_todo", "query_todo", "git_commit", "mcp_tool_call", "terminal_command", "multi_step_command", "question"]:
+    if intent not in [
+        "add_todo",
+        "query_todo",
+        "git_commit",
+        "mcp_tool_call",
+        "terminal_command",
+        "multi_step_command",
+        "question",
+    ]:
         intent = "question"
 
     print(f"\n[意图分析] {user_input[:50]}...")
@@ -271,23 +317,23 @@ def multi_step_planner(state: AgentState) -> dict:
 
     result = llm_code.invoke([HumanMessage(content=prompt)])
     plan_text = result.content.strip()
-    
+
     if "```json" in plan_text:
         plan_text = plan_text.split("```json")[1].split("```")[0].strip()
     elif "```" in plan_text:
         plan_text = plan_text.split("```")[1].split("```")[0].strip()
-    
+
     try:
         plan = json.loads(plan_text)
         print(f"[多步骤规划] 使用模型: {LLM_CONFIG2['model']}")
         print(f"            需要创建文件: {plan.get('needs_file_creation', False)}")
         print(f"            命令数量: {len(plan.get('commands', []))}")
-        
+
         return {
             "needs_file_creation": plan.get("needs_file_creation", False),
             "file_path": plan.get("file_path", ""),
             "file_content": plan.get("file_content", ""),
-            "commands": plan.get("commands", [])
+            "commands": plan.get("commands", []),
         }
     except json.JSONDecodeError:
         print(f"[多步骤规划] JSON解析失败")
@@ -296,20 +342,22 @@ def multi_step_planner(state: AgentState) -> dict:
             "file_path": "",
             "file_content": "",
             "commands": [],
-            "error": "无法解析执行计划"
+            "error": "无法解析执行计划",
         }
 
 
 def mcp_tool_planner(state: AgentState) -> dict:
     """规划MCP工具调用"""
     user_input = state["user_input"]
-    
+
     available_tools = mcp_manager.list_available_tools()
-    tools_desc = "\n".join([
-        f"- {t['name']}: {t['description']} (参数: {', '.join(t['params'])})"
-        for t in available_tools
-    ])
-    
+    tools_desc = "\n".join(
+        [
+            f"- {t['name']}: {t['description']} (参数: {', '.join(t['params'])})"
+            for t in available_tools
+        ]
+    )
+
     prompt = f"""分析用户请求，选择合适的MCP工具并返回JSON格式。
 
 可用工具:
@@ -331,32 +379,25 @@ def mcp_tool_planner(state: AgentState) -> dict:
 }}
 
 只返回JSON:"""
-    
+
     result = llm_code.invoke([HumanMessage(content=prompt)])
     plan_text = result.content.strip()
-    
+
     if "```json" in plan_text:
         plan_text = plan_text.split("```json")[1].split("```")[0].strip()
     elif "```" in plan_text:
         plan_text = plan_text.split("```")[1].split("```")[0].strip()
-    
+
     try:
         plan = json.loads(plan_text)
         print(f"[MCP工具规划] 使用模型: {LLM_CONFIG2['model']}")
         print(f"            工具: {plan.get('tool', 'unknown')}")
         print(f"            参数: {plan.get('params', {})}")
-        
-        return {
-            "mcp_tool": plan.get("tool", ""),
-            "mcp_params": plan.get("params", {})
-        }
+
+        return {"mcp_tool": plan.get("tool", ""), "mcp_params": plan.get("params", {})}
     except json.JSONDecodeError as e:
         print(f"[MCP工具规划] JSON解析失败: {e}")
-        return {
-            "mcp_tool": "",
-            "mcp_params": {},
-            "error": "无法解析MCP工具规划"
-        }
+        return {"mcp_tool": "", "mcp_params": {}, "error": "无法解析MCP工具规划"}
 
 
 def question_answerer(state: AgentState) -> dict:
@@ -387,7 +428,7 @@ def question_answerer(state: AgentState) -> dict:
     try:
         response = ""
         for chunk in llm.stream([HumanMessage(content=prompt)]):
-            if hasattr(chunk, 'content'):
+            if hasattr(chunk, "content"):
                 content = chunk.content
                 response += content
                 print(content, end="", flush=True)
@@ -408,15 +449,16 @@ def question_answerer(state: AgentState) -> dict:
 # 执行节点
 # ============================================
 
+
 def file_creator(state: AgentState) -> dict:
     """创建文件"""
     file_path = state["file_path"]
     file_content = state["file_content"]
-    
+
     print(f"[文件创建] 创建文件: {file_path}")
-    
+
     try:
-        with open(file_path, 'w', encoding='utf-8') as f:
+        with open(file_path, "w", encoding="utf-8") as f:
             f.write(file_content)
         print(f"[文件创建] ✅ 成功创建文件: {file_path}")
         return {"error": ""}
@@ -435,41 +477,37 @@ def command_executor(state: AgentState) -> dict:
 
     if result["success"]:
         print(f"[执行成功] 输出长度: {len(result['output'])} 字符")
-        return {
-            "command_output": result["output"],
-            "error": ""
-        }
+        return {"command_output": result["output"], "error": ""}
     else:
         print(f"[执行失败] {result['error']}")
-        return {
-            "command_output": "",
-            "error": result["error"]
-        }
+        return {"command_output": "", "error": result["error"]}
 
 
 def multi_command_executor(state: AgentState) -> dict:
     """执行多个终端命令"""
     commands = state["commands"]
     outputs = []
-    
+
     print(f"[多命令执行] 共{len(commands)}个命令")
-    
+
     for idx, command in enumerate(commands, 1):
         print(f"[多命令执行] 执行第{idx}个命令: {command}")
         result = execute_terminal_command(command)
-        
-        outputs.append({
-            "command": command,
-            "success": result["success"],
-            "output": result["output"],
-            "error": result["error"]
-        })
-        
+
+        outputs.append(
+            {
+                "command": command,
+                "success": result["success"],
+                "output": result["output"],
+                "error": result["error"],
+            }
+        )
+
         if result["success"]:
             print(f"[多命令执行] ✅ 第{idx}个命令执行成功")
         else:
             print(f"[多命令执行] ❌ 第{idx}个命令执行失败: {result['error']}")
-    
+
     return {"command_outputs": outputs}
 
 
@@ -477,20 +515,20 @@ def mcp_tool_executor(state: AgentState) -> dict:
     """执行MCP工具"""
     tool_name = state["mcp_tool"]
     params = state["mcp_params"]
-    
+
     print(f"[MCP工具执行] 工具: {tool_name}")
     print(f"            参数: {params}")
-    
+
     try:
         result = mcp_manager.call_tool(tool_name, **params)
-        
+
         if result.get("success"):
             print(f"[MCP工具执行] ✅ 成功")
         else:
             print(f"[MCP工具执行] ❌ 失败: {result.get('error')}")
-        
+
         return {"mcp_result": json.dumps(result, ensure_ascii=False)}
-    
+
     except Exception as e:
         error_result = {"success": False, "error": str(e)}
         print(f"[MCP工具执行] ❌ 异常: {e}")
@@ -501,20 +539,23 @@ def mcp_tool_executor(state: AgentState) -> dict:
 # 响应格式化节点
 # ============================================
 
+
 def response_formatter(state: AgentState) -> dict:
     """格式化最终响应"""
     if state["intent"] == "terminal_command":
         if state.get("error"):
-            response = f"❌ 命令执行失败\n\n命令: {state['command']}\n错误: {state['error']}"
+            response = (
+                f"❌ 命令执行失败\n\n命令: {state['command']}\n错误: {state['error']}"
+            )
         else:
             response = f"✅ 命令执行成功\n\n命令: {state['command']}\n\n输出:\n{state['command_output']}"
-    
+
     elif state["intent"] == "multi_step_command":
         response = "✅ 多步骤任务执行结果:\n\n"
-        
+
         if state.get("needs_file_creation"):
             response += f"📄 创建文件: {state.get('file_path', '')}\n\n"
-        
+
         outputs = state.get("command_outputs", [])
         for idx, output in enumerate(outputs, 1):
             status = "✅" if output["success"] else "❌"
@@ -523,17 +564,17 @@ def response_formatter(state: AgentState) -> dict:
                 response += f"输出:\n{output['output']}\n\n"
             else:
                 response += f"错误: {output['error']}\n\n"
-    
+
     elif state["intent"] == "mcp_tool_call":
         result = json.loads(state.get("mcp_result", "{}"))
-        
+
         if result.get("success"):
-            response = format_mcp_success_response(state['mcp_tool'], result)
+            response = format_mcp_success_response(state["mcp_tool"], result)
         else:
             response = f"❌ MCP工具执行失败\n\n"
             response += f"工具: {state['mcp_tool']}\n"
             response += f"错误: {result.get('error', '未知错误')}"
-    
+
     else:
         response = "抱歉，我无法处理这个请求。"
 
@@ -544,40 +585,40 @@ def response_formatter(state: AgentState) -> dict:
 def format_mcp_success_response(tool_name: str, result: dict) -> str:
     """格式化MCP成功响应"""
     response = f"✅ MCP工具执行成功\n\n工具: {tool_name}\n\n"
-    
+
     if tool_name == "fs_read":
-        content = result.get('content', '')
-        lines = result.get('lines', 0)
-        size = result.get('size', 0)
+        content = result.get("content", "")
+        lines = result.get("lines", 0)
+        size = result.get("size", 0)
         response += f"文件大小: {size} 字节\n"
         response += f"行数: {lines}\n\n"
         response += f"内容:\n{'-' * 60}\n{content}\n{'-' * 60}"
-    
+
     elif tool_name == "fs_list":
         response += f"目录: {result.get('path', '.')}\n"
         response += f"找到 {result['total_files']} 个文件\n\n"
-        for f in result['files'][:20]:
+        for f in result["files"][:20]:
             response += f"  📄 {f['name']:<40} {f['size_human']:>10}  {f['modified']}\n"
-        if result['total_files'] > 20:
+        if result["total_files"] > 20:
             response += f"\n... 还有 {result['total_files'] - 20} 个文件"
-    
+
     elif tool_name == "fs_search":
         response += f"找到 {result['total']} 个匹配文件\n\n"
-        for f in result['matches'][:15]:
+        for f in result["matches"][:15]:
             response += f"  📝 {f['name']} ({f['size_human']})\n"
-            if f.get('content_matched'):
+            if f.get("content_matched"):
                 response += f"     匹配行:\n"
-                for line_num, line_content in f.get('matched_lines', [])[:3]:
+                for line_num, line_content in f.get("matched_lines", [])[:3]:
                     response += f"       {line_num}: {line_content.strip()[:60]}...\n"
-        if result['total'] > 15:
+        if result["total"] > 15:
             response += f"\n... 还有 {result['total'] - 15} 个文件"
-    
+
     elif tool_name == "fs_write":
         response += f"文件路径: {result.get('path', '')}\n"
         response += f"写入大小: {result.get('size', 0)} 字节\n"
         response += f"行数: {result.get('lines', 0)}\n"
         response += f"模式: {result.get('mode', 'write')}"
-    
+
     elif tool_name == "fs_info":
         response += f"文件名: {result.get('name', '')}\n"
         response += f"路径: {result.get('path', '')}\n"
@@ -585,13 +626,13 @@ def format_mcp_success_response(tool_name: str, result: dict) -> str:
         response += f"修改时间: {result.get('modified', '')}\n"
         response += f"创建时间: {result.get('created', '')}\n"
         response += f"类型: {'文件' if result.get('is_file') else '目录'}"
-    
+
     elif tool_name.startswith("desktop_"):
         response += f"结果:\n{json.dumps(result.get('result', {}), ensure_ascii=False, indent=2)}"
-    
+
     else:
         response += f"结果:\n{json.dumps(result, ensure_ascii=False, indent=2)}"
-    
+
     return response
 
 
@@ -599,47 +640,46 @@ def format_mcp_success_response(tool_name: str, result: dict) -> str:
 # Git相关节点
 # ============================================
 
+
 def git_commit_generator(state: AgentState) -> dict:
     """
     生成Git commit消息
     分析git diff并生成专业的commit消息
     """
     print(f"[Git分析] 分析代码变更...")
-    
+
     # 分析Git变更
     analysis = git_tools.analyze_changes()
-    
+
     if not analysis["success"]:
         print(f"[Git分析] ❌ {analysis.get('error', '分析失败')}")
-        return {
-            "response": analysis.get('error', '❌ Git分析失败')
-        }
-    
+        return {"response": analysis.get("error", "❌ Git分析失败")}
+
     print(f"[Git分析] ✅ 分析完成")
     print(f"[Git分析] {analysis['summary']}")
     print(f"[Git分析] 变更文件: {len(analysis['files_changed'])} 个")
-    
+
     # 准备prompt
     diff_content = ""
-    if analysis['has_staged']:
-        diff_content = analysis['staged_diff']
+    if analysis["has_staged"]:
+        diff_content = analysis["staged_diff"]
         diff_type = "已暂存(staged)"
-    elif analysis['has_unstaged']:
-        diff_content = analysis['unstaged_diff']
+    elif analysis["has_unstaged"]:
+        diff_content = analysis["unstaged_diff"]
         diff_type = "未暂存(unstaged)"
     else:
         # 使用git status
-        diff_content = analysis['status']
+        diff_content = analysis["status"]
         diff_type = "状态"
-    
+
     # 截取diff（避免太长）
     max_diff_length = 4000
     if len(diff_content) > max_diff_length:
         diff_content = diff_content[:max_diff_length] + "\n\n... (diff太长，已截断)"
-    
+
     # 获取最近的commits作为参考
-    recent_commits_str = "\n".join(analysis.get('recent_commits', [])[:3])
-    
+    recent_commits_str = "\n".join(analysis.get("recent_commits", [])[:3])
+
     prompt = f"""你是一个专业的Git commit消息生成器。根据代码变更生成规范的commit消息。
 
 代码变更({diff_type}):
@@ -664,40 +704,40 @@ def git_commit_generator(state: AgentState) -> dict:
 请生成commit消息(只返回commit消息内容，不要解释):"""
 
     print(f"[Commit生成] 使用模型: {LLM_CONFIG2['model']}")
-    
+
     # 调用LLM生成
     result = llm_code.invoke([HumanMessage(content=prompt)])
     commit_message = result.content.strip()
-    
+
     # 清理可能的markdown格式
     if commit_message.startswith("```"):
-        lines = commit_message.split('\n')
-        commit_message = '\n'.join(lines[1:-1]) if len(lines) > 2 else commit_message
-    
+        lines = commit_message.split("\n")
+        commit_message = "\n".join(lines[1:-1]) if len(lines) > 2 else commit_message
+
     print(f"[Commit生成] ✅ 生成完成")
-    
+
     # 格式化响应
     response = "📝 Git Commit消息生成完成\n\n"
     response += "=" * 60 + "\n"
     response += commit_message + "\n"
     response += "=" * 60 + "\n\n"
-    
+
     response += f"📊 变更摘要:\n"
     response += f"  • 变更文件: {len(analysis['files_changed'])} 个\n"
-    if analysis['files_changed']:
+    if analysis["files_changed"]:
         response += f"  • 主要文件:\n"
-        for f in analysis['files_changed'][:5]:
+        for f in analysis["files_changed"][:5]:
             response += f"    - {f}\n"
-        if len(analysis['files_changed']) > 5:
+        if len(analysis["files_changed"]) > 5:
             response += f"    ... 还有 {len(analysis['files_changed']) - 5} 个文件\n"
-    
+
     response += f"\n💡 使用方法:\n"
-    if analysis['has_staged']:
-        response += f"  git commit -m \"{commit_message.split(chr(10))[0]}\"\n"
+    if analysis["has_staged"]:
+        response += f'  git commit -m "{commit_message.split(chr(10))[0]}"\n'
     else:
         response += f"  git add .  # 先暂存变更\n"
-        response += f"  git commit -m \"{commit_message.split(chr(10))[0]}\"\n"
-    
+        response += f'  git commit -m "{commit_message.split(chr(10))[0]}"\n'
+
     return {"response": response}
 
 
@@ -705,14 +745,15 @@ def git_commit_generator(state: AgentState) -> dict:
 # 待办事项处理节点
 # ============================================
 
+
 def todo_processor(state: AgentState) -> dict:
     """处理待办事项的添加和查询"""
     user_input = state["user_input"]
     intent = state["intent"]
-    
+
     print(f"\n[待办处理] 处理待办事项...")
     print(f"           意图: {intent}")
-    
+
     if intent == "add_todo":
         # 使用LLM解析待办信息
         prompt = f"""从用户输入中提取待办事项信息，返回JSON格式。
@@ -740,13 +781,13 @@ def todo_processor(state: AgentState) -> dict:
 
         result = llm.invoke([HumanMessage(content=prompt)])
         response_text = result.content.strip()
-        
+
         # 提取JSON
         if "```json" in response_text:
             response_text = response_text.split("```json")[1].split("```")[0].strip()
         elif "```" in response_text:
             response_text = response_text.split("```")[1].split("```")[0].strip()
-        
+
         try:
             parsed = json.loads(response_text)
             date = parsed.get("date", "")
@@ -763,7 +804,7 @@ def todo_processor(state: AgentState) -> dict:
                     print(f"[待办处理] ❌ 日期格式无效: {date}")
                     return {
                         "response": f"❌ 日期格式无效: {date}\n\n请使用正确的日期格式，例如：「今天18点给陈龙打电话」",
-                        "error": "Invalid date format"
+                        "error": "Invalid date format",
                     }
 
             # 验证时间格式（如果提供了时间）
@@ -777,7 +818,7 @@ def todo_processor(state: AgentState) -> dict:
             if date and content:
                 # 添加待办
                 todo_item = todo_manager.add_todo(date, time, content)
-                
+
                 if todo_item:
                     response = f"✅ 待办已添加！\n\n"
                     response += f"📅 日期: {date}\n"
@@ -789,22 +830,22 @@ def todo_processor(state: AgentState) -> dict:
                     response = "❌ 添加待办失败，请重试。"
             else:
                 response = "❌ 无法解析待办信息，请提供更明确的日期和内容。\n\n示例：「今天18点给陈龙打电话」"
-            
+
             return {
                 "response": response,
                 "todo_action": "add",
                 "todo_date": date,
                 "todo_time": time,
-                "todo_content": content
+                "todo_content": content,
             }
-            
+
         except json.JSONDecodeError as e:
             print(f"[待办处理] JSON解析失败: {e}")
             return {
                 "response": "❌ 解析待办信息失败，请重试。\n\n示例：「今天18点给陈龙打电话」",
-                "error": str(e)
+                "error": str(e),
             }
-    
+
     elif intent == "query_todo":
         # 使用LLM解析查询意图
         prompt = f"""从用户输入中提取查询信息，返回JSON格式。
@@ -837,21 +878,21 @@ def todo_processor(state: AgentState) -> dict:
 
         result = llm.invoke([HumanMessage(content=prompt)])
         response_text = result.content.strip()
-        
+
         # 提取JSON
         if "```json" in response_text:
             response_text = response_text.split("```json")[1].split("```")[0].strip()
         elif "```" in response_text:
             response_text = response_text.split("```")[1].split("```")[0].strip()
-        
+
         try:
             parsed = json.loads(response_text)
             query_type = parsed.get("query_type", "today")
-            
+
             print(f"[待办处理] 查询类型: {query_type}")
-            
+
             response = ""
-            
+
             if query_type == "today":
                 todos = todo_manager.get_today_todos()
                 date = datetime.now().strftime("%Y-%m-%d")
@@ -860,7 +901,7 @@ def todo_processor(state: AgentState) -> dict:
                     response += todo_manager.format_todos_display(todos)
                 else:
                     response += "📭 今天没有待办事项"
-            
+
             elif query_type == "date":
                 date = parsed.get("date", "")
                 if date:
@@ -872,12 +913,14 @@ def todo_processor(state: AgentState) -> dict:
                         response += "📭 这天没有待办事项"
                 else:
                     response = "❌ 无法解析日期"
-            
+
             elif query_type == "range":
                 start_date = parsed.get("start_date", "")
                 end_date = parsed.get("end_date", "")
                 if start_date and end_date:
-                    todos_by_date = todo_manager.get_todos_by_range(start_date, end_date)
+                    todos_by_date = todo_manager.get_todos_by_range(
+                        start_date, end_date
+                    )
                     response = f"📅 {start_date} 到 {end_date} 的待办:\n\n"
                     if todos_by_date:
                         for date, todos in sorted(todos_by_date.items()):
@@ -887,7 +930,7 @@ def todo_processor(state: AgentState) -> dict:
                         response += "📭 这个时间段没有待办事项"
                 else:
                     response = "❌ 无法解析日期范围"
-            
+
             elif query_type == "upcoming":
                 days = parsed.get("days", 7)
                 todos_by_date = todo_manager.get_upcoming_todos(days)
@@ -898,7 +941,7 @@ def todo_processor(state: AgentState) -> dict:
                         response += todo_manager.format_todos_display(todos) + "\n"
                 else:
                     response += "📭 未来几天没有待办事项"
-            
+
             elif query_type == "search":
                 keyword = parsed.get("keyword", "")
                 if keyword:
@@ -912,22 +955,19 @@ def todo_processor(state: AgentState) -> dict:
                         response += f"📭 没有找到包含「{keyword}」的待办事项"
                 else:
                     response = "❌ 请提供搜索关键词"
-            
+
             return {
                 "response": response,
                 "todo_action": "query",
-                "todo_result": response
+                "todo_result": response,
             }
-            
+
         except json.JSONDecodeError as e:
             print(f"[待办处理] JSON解析失败: {e}")
             return {
                 "response": "❌ 解析查询失败，请重试。\n\n示例：「今天有什么要做的？」",
-                "error": str(e)
+                "error": str(e),
             }
-    
+
     else:
-        return {
-            "response": "❌ 未知的待办操作",
-            "error": "Unknown todo intent"
-        }
+        return {"response": "❌ 未知的待办操作", "error": "Unknown todo intent"}

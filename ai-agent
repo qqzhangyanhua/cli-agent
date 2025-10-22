@@ -115,7 +115,7 @@ def parse_arguments():
     
     parser.add_argument(
         'command',
-        nargs='?',
+        nargs='*',
         help='要执行的命令（可选，不提供则进入交互模式）'
     )
     
@@ -351,8 +351,9 @@ def main():
     
     # 判断模式
     if args.command and not args.interactive:
-        # 单次命令模式
-        exit_code = execute_single_command(args.command, args.quiet)
+        # 单次命令模式 - 将命令列表用空格连接
+        command_str = ' '.join(args.command)
+        exit_code = execute_single_command(command_str, args.quiet)
         return exit_code
     else:
         # 交互模式
