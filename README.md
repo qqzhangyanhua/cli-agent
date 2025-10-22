@@ -5,7 +5,7 @@
 ## ✨ 核心特性
 
 - 🗣️ **自然语言执行命令** - 用人话说，让 AI 执行终端命令
-- 📁 **@ 智能文件引用** - 交互式文件选择器，快速引用文件
+- 📁 **@ 智能文件引用** - IDE 风格自动补全，实时搜索过滤（全新升级！）
 - 🧠 **对话记忆** - 记住上下文，支持连续对话
 - 📝 **Git 完整工作流** - 一键完成 pull → commit → push，自动识别分支
   - 智能生成 commit 消息（基于代码分析）
@@ -258,22 +258,41 @@ dnm "解释一下LangGraph的工作原理"
 
 ---
 
-## 🔥 @ 文件引用功能
+## 🔥 @ 文件引用功能 ⚡ 全新升级！
 
-这是 `ai-agent` 的杀手级功能！让你快速引用文件到对话上下文中。
+这是 `ai-agent` 的杀手级功能！现已升级为 **IDE 风格的自动补全体验**，类似 Codex/Claude Code！
+
+### ✨ 新特性（v1.0.0）
+
+- 🎯 **实时自动补全** - 输入 `@` 后立即显示文件列表，无需额外操作
+- 🔍 **智能模糊搜索** - 支持缩写和部分匹配（如 `@cfg` → `agent_config.py`）
+- ⌨️ **流畅键盘操作** - 上下箭头选择，Tab 补全，Enter 确认
+- 📝 **历史记录** - 自动保存输入历史，支持快速回溯
+- 🎨 **丰富图标** - 根据文件类型显示不同图标和文件大小
+- 📂 **递归扫描** - 自动索引子目录文件，支持路径补全
 
 ### 基本用法
 
 ```bash
-# 方式1: 直接输入 @ 启动交互式文件选择器
+# 方式1: IDE 风格自动补全（推荐）✨
 👤 你: @
-🎯 启动文件选择器...
-[显示文件列表，数字选择]
+# 立即弹出文件列表：
+#   🐍 agent_config.py (3.2K)
+#   🐍 agent_workflow.py (8.5K)
+#   📝 README.md (12.3K)
+#   ...
 
-# 方式2: 输入 @ 加部分文件名快速搜索
+# 继续输入过滤
 👤 你: @read
-🔍 搜索文件: 'read'...
-[显示匹配的文件列表]
+# 自动过滤显示匹配文件
+#   📝 README.md (12.3K)
+#   📝 README_INTERACTIVE.md (5.1K)
+# 使用 ↑↓ 选择，Enter 确认
+
+# 方式2: 模糊搜索
+👤 你: @cfg      # 匹配 agent_config.py
+👤 你: @wkf      # 匹配 agent_workflow.py
+👤 你: @ui       # 匹配 agent_ui.py
 
 # 方式3: 直接引用文件路径
 👤 你: 读取 @README.md
@@ -283,19 +302,20 @@ dnm "解释一下LangGraph的工作原理"
 
 ### 支持的语法
 
-- `@filename.ext` - 智能匹配文件名
+- `@filename.ext` - 智能匹配文件名（支持模糊搜索）
 - `@./path/file.ext` - 相对路径
 - `@/absolute/path` - 绝对路径
-- `@*.py` - 通配符匹配
-- `@folder/` - 目录引用
+- `@docs/README.md` - 子目录文件
+- 多文件引用：`比较 @file1 和 @file2`
 
-### 交互式选择器功能
+### 快捷键
 
-- 🔢 数字快速选择
-- 🔍 实时搜索和过滤
-- 📄 文件大小和图标显示
-- 📑 支持分页浏览
-- ⌨️ 快捷键操作（`n`下一页，`p`上一页，`h`显示隐藏文件）
+| 快捷键 | 功能 |
+|--------|------|
+| `↑` `↓` | 选择文件 |
+| `Tab` | 补全当前项 |
+| `Enter` | 确认选择 |
+| `Ctrl+C` | 取消输入 |
 
 ### 使用示例
 
@@ -303,21 +323,43 @@ dnm "解释一下LangGraph的工作原理"
 # 启动交互模式
 dnm
 
-# 在对话中使用 @
-👤 你: @
-🎯 启动文件选择器...
-[选择 agent_config.py]
-✅ 已选择文件: @agent_config.py
-👤 你: 这个文件里有什么配置？
+# 🌟 新体验：输入 @ 后继续输入
+👤 你: @read
+[实时显示匹配文件]
+📝 README.md (12.3K)
+📝 README_INTERACTIVE.md (5.1K)
+[使用 ↑↓ 选择，Enter 确认]
 
-# 快速搜索
-👤 你: @agent
-🔍 搜索文件: 'agent'...
-1. 🐍 agent_config.py
-2. 🐍 agent_nodes.py
-3. 🐍 agent_workflow.py
-👤 选择文件 (输入数字): 1
+👤 你: @README.md 总结这个项目
+🤖 助手: 这是一个 AI 智能体终端控制工具...
+
+# 模糊搜索示例
+👤 你: @cfg 有哪些配置项？
+# 自动匹配 agent_config.py
+
+👤 你: 比较 @agent_config.py 和 @agent_llm.py
+# 多文件引用
 ```
+
+### 安装增强功能
+
+新的 IDE 风格补全需要 `prompt-toolkit`：
+
+```bash
+# 自动安装（推荐）
+python install_prompt_toolkit.py
+
+# 或手动安装
+pip install prompt-toolkit>=3.0.0
+```
+
+如果未安装，系统会自动降级到传统的文件选择器模式。
+
+### 📚 详细文档
+
+- **[UPGRADE_GUIDE.md](UPGRADE_GUIDE.md)** - 升级指南和功能对比
+- **[docs/SMART_FILE_REFERENCE.md](docs/SMART_FILE_REFERENCE.md)** - 完整功能文档
+- **[demo_smart_file_input.py](demo_smart_file_input.py)** - 交互式演示
 
 ---
 

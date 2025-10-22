@@ -138,6 +138,7 @@ def copy_files(script_dir: Path, install_dir: Path):
         "env_diagnostic_tools.py",
         "file_reference_parser.py",
         "interactive_file_selector.py",
+        "smart_file_input.py",  # IDE 风格文件输入（可选）
         "todo_manager.py",
         "todo_tools.py",
     ]

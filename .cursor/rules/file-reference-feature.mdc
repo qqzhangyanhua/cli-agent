@@ -1,136 +1,249 @@
 ---
-description: @ 文件引用功能开发指南
+description: @ 文件引用功能开发指南 v1.1.0
 ---
 
 # @ 文件引用功能指南
 
-这是项目的核心特性之一，允许用户通过 @ 语法快速引用文件。
-
 ## 核心模块
-- [file_reference_parser.py](mdc:file_reference_parser.py) - @ 语法解析和文件内容读取
-- [interactive_file_selector.py](mdc:interactive_file_selector.py) - 交互式文件选择器
-- [ai-agent](mdc:ai-agent) 中的 `smart_input_handler()` - 智能输入处理
+
+### 新架构 (v1.1.0)
+- **[smart_file_input.py](mdc:smart_file_input.py)** - 智能文件输入处理器（主模块）
+  - `FileCompleter` - 自动补全器（prompt-toolkit）
+  - `SmartFileInput` - 智能输入管理器
+  - 增强模式 + 降级模式
+
+### 传统模块（保留）
+- **[file_reference_parser.py](mdc:file_reference_parser.py)** - @ 语法解析和文件内容读取
+- **[interactive_file_selector.py](mdc:interactive_file_selector.py)** - 传统交互式文件选择器
+
+### 入口集成
+- **[ai-agent](mdc:ai-agent)** - `smart_input_handler()` 函数
+- **[dnm](mdc:dnm)** - `smart_input_handler()` 函数
 
 ## 工作流程
 
-### 1. 用户输入 @ 
+### 新流程（增强模式）
+
 ```python
-# 在 smart_input_handler() 中处理
-if user_input == "@":
-    # 启动交互式文件选择器
-    selected_file = interactive_file_select("选择要引用的文件")
+# 1. 用户输入 @
+👤 你: @
+
+# 2. 立即触发 FileCompleter
+def get_completions(document, complete_event):
+    # 检测 @ 符号
+    match = re.search(r'@([^\s]*)$', text)
+    # 返回补全建议
+
+# 3. 显示补全菜单（自动）
+- 深色主题
+- 蓝色高亮
+- 实时过滤
+
+# 4. 用户选择文件
+↑↓ 导航，Enter 确认
+
+# 5. 继续对话
+👤 你: @agent_config.py 这是做什么的？
 ```
 
-### 2. 快速搜索模式
+### 降级流程（无 prompt-toolkit）
+
 ```python
-# 用户输入 @readme
-if user_input.startswith("@") and len(user_input) > 1:
-    search_term = user_input[1:].split()[0]
-    selected_file = quick_file_select(search_term)
+# 1. 用户输入包含 @
+👤 你: @agent
+
+# 2. 检测并搜索
+if '@' in user_input:
+    matches = _simple_file_search(query)
+
+# 3. 显示弹出选择框
+if len(matches) > 1:
+    _show_popup_selector(matches, query)
+
+# 4. 用户选择
+数字/Enter/s
+
+# 5. 替换为完整文件名
+result = "@agent_config.py ..."
 ```
 
-### 3. 直接引用模式
+## 关键函数
+
+### smart_file_input.py
+
 ```python
-# 用户输入 "读取 @README.md"
-# 在 file_reference_resolver() 节点中解析
-referenced_files = extract_file_references(user_input)
-for file in referenced_files:
-    content = read_file_content(file)
-    state["file_contents"][file] = content
-```
-
-## 支持的语法
-
-### 文件名匹配
-- `@readme` - 模糊匹配 README.md
-- `@config` - 匹配 agent_config.py
-
-### 路径引用
-- `@./path/file.py` - 相对路径
-- `@/absolute/path` - 绝对路径
-
-### 通配符
-- `@*.py` - 匹配所有 Python 文件
-- `@test_*.py` - 匹配测试文件
-
-### 多文件引用
-- `比较 @old.txt 和 @new.txt` - 同时引用多个文件
-
-## 交互式选择器功能
-
-### 文件列表显示
-```python
-class InteractiveFileSelector:
-    def get_files_list(self) -> List[dict]:
-        """获取文件列表，包含图标、大小等信息"""
+class FileCompleter(Completer):
+    """自动补全器"""
     
-    def display_files_page(self, files, page):
-        """分页显示文件列表"""
+    def get_completions(document, complete_event):
+        """实时生成补全建议"""
+        # 检测 @ 符号
+        # 模糊匹配文件
+        # 返回 Completion 对象
+
+class SmartFileInput:
+    """智能输入管理器"""
+    
+    def get_input(prompt_text) -> str:
+        """获取用户输入（带自动补全）"""
+        # 增强模式：使用 prompt-toolkit
+        # 降级模式：传统输入
+    
+    def _fallback_input(prompt_text) -> str:
+        """降级输入处理"""
+        # 检测 @ 符号
+        # 显示弹出选择
 ```
 
-### 快捷操作
-- `n` - 下一页
-- `p` - 上一页
-- `h` - 显示/隐藏隐藏文件
-- `r` - 刷新列表
-- `q` - 退出选择
+### 集成点（dnm / ai-agent）
 
-### 搜索和过滤
 ```python
-def filter_files(self, files: List[dict], filter_text: str):
-    """实时搜索和过滤文件"""
-    # 精确匹配 > 开头匹配 > 包含匹配
+def smart_input_handler(prompt: str = "👤 你: ") -> str:
+    """智能输入处理器"""
+    # 检查 prompt-toolkit 可用性
+    if check_prompt_toolkit_available():
+        # 使用增强模式
+        return get_smart_input(prompt)
+    else:
+        # 降级到传统模式
+        # 保留原有的文件选择器逻辑
 ```
 
-## 文件内容注入
+## 样式配置
 
-### 在工作流中处理
+### 自定义主题
+
 ```python
-def file_reference_resolver(state: AgentState) -> AgentState:
-    """解析 @ 引用并读取文件内容"""
-    user_input = state["user_input"]
-    
-    # 提取所有 @ 引用
-    files = extract_file_references(user_input)
-    
-    # 读取文件内容
-    for file in files:
-        content = read_file_content(file)
-        state["file_contents"][file] = content
-        state["referenced_files"].append(file)
-    
-    return state
+custom_style = Style.from_dict({
+    'completion-menu': 'bg:#1e1e1e #ffffff',
+    'completion-menu.completion.current': 'bg:#0066cc #ffffff bold',
+    'scrollbar.background': 'bg:#1e1e1e',
+})
 ```
 
-### 内容注入到提示词
+### 补全菜单配置
+
 ```python
-# 在生成提示词时注入文件内容
-if state["file_contents"]:
-    context = "\n\n已引用的文件内容：\n"
-    for file, content in state["file_contents"].items():
-        context += f"\n--- {file} ---\n{content}\n"
-    prompt = base_prompt + context
+prompt(
+    completer=self.completer,
+    complete_while_typing=True,  # 立即显示
+    style=custom_style,
+    complete_style='MULTI_COLUMN',
+    reserve_space_for_menu=8,  # 预留空间
+)
 ```
 
 ## 文件图标映射
+
 ```python
 icon_map = {
     '.py': '🐍',
     '.js': '🟨',
     '.md': '📝',
     '.json': '📋',
-    '.txt': '📄',
+    '.yml': '⚙️',
     # 目录使用 📁
 }
 ```
 
+## 模糊匹配算法
+
+```python
+def _fuzzy_match(query: str, text: str) -> Tuple[bool, int]:
+    """
+    返回 (是否匹配, 得分)
+    
+    得分规则:
+    - 精确匹配: 100
+    - 前缀匹配: 90
+    - 包含匹配: 70
+    - 顺序匹配: 50
+    """
+```
+
+## 性能优化
+
+### 文件缓存
+
+```python
+def _refresh_file_cache(self):
+    """扫描并缓存文件列表"""
+    # 递归扫描（深度3层）
+    # 忽略隐藏文件和特定目录
+    # 缓存文件信息
+```
+
+### 忽略规则
+
+```python
+# 自动忽略
+- .git/
+- node_modules/
+- __pycache__/
+- venv/
+- 隐藏文件（.开头）
+```
+
 ## 错误处理
-- 文件不存在 → 提供相似文件建议
-- 权限错误 → 友好的错误提示
-- 空文件 → 提示文件为空
-- 二进制文件 → 警告并跳过
+
+```python
+try:
+    # 尝试使用增强模式
+    result = prompt(...)
+except Exception as e:
+    # 自动降级
+    print(f"⚠️  降级到简单模式: {e}")
+    return self._fallback_input(prompt_text)
+```
+
+## 测试
+
+### 单元测试
+```bash
+python test_smart_file_input.py
+```
+
+### 交互测试
+```bash
+python demo_smart_file_input.py
+python quick_test_autocomplete.py
+```
 
 ## 扩展建议
-- 支持文件编辑：`编辑 @config.py 添加新配置`
-- 支持目录操作：`列出 @src/ 目录的所有文件`
-- 支持 Git 操作：`对比 @file 的改动`
+
+### 未来功能
+- [ ] 文件预览（显示前几行）
+- [ ] Git 状态显示
+- [ ] 最近使用文件优先
+- [ ] 收藏文件功能
+- [ ] 正则表达式搜索
+
+### 样式主题
+- [ ] 浅色主题选项
+- [ ] 自定义颜色配置
+- [ ] 字体大小调整
+
+## 依赖
+
+### 必需
+- `pathlib` - 路径处理
+- `re` - 正则匹配
+
+### 可选（增强功能）
+- `prompt-toolkit>=3.0.0` - IDE 风格补全
+
+## 配置管理
+
+所有配置在 `smart_file_input.py` 中：
+
+```python
+max_depth = 3  # 扫描深度
+max_results = 30  # 结果数量
+reserve_space_for_menu = 8  # 菜单空间
+```
+
+## 文档
+
+- [UPGRADE_GUIDE.md](mdc:../UPGRADE_GUIDE.md) - 升级指南
+- [docs/SMART_FILE_REFERENCE.md](mdc:../docs/SMART_FILE_REFERENCE.md) - 完整文档
+- [FILE_REFERENCE_UPGRADE_SUMMARY.md](mdc:../FILE_REFERENCE_UPGRADE_SUMMARY.md) - 升级总结

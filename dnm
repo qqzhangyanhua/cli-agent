@@ -58,11 +58,34 @@ from interactive_file_selector import (
     update_selector_working_directory,
 )
 
+# 尝试导入智能文件输入（IDE 风格）
+try:
+    from smart_file_input import (
+        get_smart_input,
+        update_smart_input_directory,
+        check_prompt_toolkit_available,
+    )
+    USE_SMART_INPUT = True
+except ImportError:
+    USE_SMART_INPUT = False
+
 __version__ = "1.0.0"
 
 
 def smart_input_handler(prompt: str = "👤 你: ") -> str:
     """智能输入处理器，支持 @ 文件选择"""
+    # 如果可用，优先使用 IDE 风格的智能输入
+    if USE_SMART_INPUT and check_prompt_toolkit_available():
+        try:
+            return get_smart_input(prompt)
+        except (KeyboardInterrupt, EOFError):
+            print("\n\n👋 检测到中断信号，退出程序...\n")
+            sys.exit(0)
+        except Exception as e:
+            # 出错则降级到传统模式
+            pass
+    
+    # 传统模式
     while True:
         try:
             user_input = input(prompt).strip()
@@ -84,29 +107,56 @@ def smart_input_handler(prompt: str = "👤 你: ") -> str:
                     print("🔄 继续输入...")
                     continue
 
-            # 检查是否以 @ 开头但不完整
+            # 检查是否以 @ 开头
             elif user_input.startswith("@") and len(user_input) > 1:
                 # 提取 @ 后的部分作为搜索条件
                 search_term = user_input[1:].split()[0]  # 取第一个词作为文件名
                 remaining_text = user_input[len(search_term) + 1 :].strip()
 
-                # 如果搜索词看起来不完整，提供快速选择
-                if len(search_term) < 3 or not any(c in search_term for c in "./\\"):
+                # 如果已经有后续文本（用户输入了完整命令），直接返回
+                if remaining_text:
+                    return user_input
+                
+                # 没有后续文本，需要处理
+                # 如果搜索词看起来不完整（短），提供快速选择
+                if len(search_term) <= 10 and not any(c in search_term for c in "./\\"):
                     print(f"\n🔍 搜索文件: '{search_term}'...")
                     selected_file = quick_file_select(search_term)
                     if selected_file:
-                        if remaining_text:
-                            return f"@{selected_file} {remaining_text}"
-                        else:
-                            # 询问用户要做什么
-                            action = input(f"👤 对 @{selected_file} 要做什么? ").strip()
-                            if action:
-                                return f"@{selected_file} {action}"
+                        # 选择文件后，重新提示完整输入
+                        print(f"\n✅ 已选择: @{selected_file}")
+                        print(f"💡 请继续输入操作，例如: 总结内容、翻译、有哪些配置项\n")
+                        # 重新获取用户输入
+                        new_input = input(prompt).strip()
+                        if new_input:
+                            # 如果用户重新输入了完整命令，直接返回
+                            if new_input.startswith("@"):
+                                return new_input
+                            # 如果用户只输入了操作，自动补全文件名
                             else:
-                                return f"读取 @{selected_file}"
+                                return f"@{selected_file} {new_input}"
+                        # 如果用户没输入，继续循环
+                        continue
                     else:
                         print("🔄 继续输入...")
                         continue
+                
+                # 如果是完整文件名（超过10个字符），也提示用户输入操作
+                else:
+                    # 提示用户继续输入操作
+                    print(f"\n✅ 检测到文件: @{search_term}")
+                    print(f"💡 请继续输入操作，例如: 总结内容、翻译、有哪些配置项\n")
+                    # 重新获取用户输入
+                    new_input = input(prompt).strip()
+                    if new_input:
+                        # 如果用户重新输入了完整命令，直接返回
+                        if new_input.startswith("@"):
+                            return new_input
+                        # 如果用户只输入了操作，自动补全文件名
+                        else:
+                            return f"@{search_term} {new_input}"
+                    # 如果用户没输入，继续循环
+                    continue
 
             # 普通输入，直接返回
             return user_input
@@ -383,6 +433,8 @@ def main():
             # 同步文件引用解析器的工作目录
             update_working_directory(args.working_dir)
             update_selector_working_directory(args.working_dir)
+            if USE_SMART_INPUT:
+                update_smart_input_directory(args.working_dir)
             if not args.quiet:
                 print(f"📂 工作目录: {os.getcwd()}")
         except Exception as e:
@@ -393,6 +445,8 @@ def main():
         current_dir = os.getcwd()
         update_working_directory(current_dir)
         update_selector_working_directory(current_dir)
+        if USE_SMART_INPUT:
+            update_smart_input_directory(current_dir)
 
     # 如果禁用记忆，清空记忆
     if args.no_memory:

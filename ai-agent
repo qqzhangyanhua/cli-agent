@@ -90,8 +90,9 @@ def smart_input_handler(prompt: str = "👤 你: ") -> str:
                 search_term = user_input[1:].split()[0]  # 取第一个词作为文件名
                 remaining_text = user_input[len(search_term) + 1 :].strip()
 
-                # 如果搜索词看起来不完整，提供快速选择
-                if len(search_term) < 3 or not any(c in search_term for c in "./\\"):
+                # 如果搜索词看起来不完整（短或没有路径分隔符），提供快速选择
+                # 改为 <= 10，让更多的输入都能触发文件选择
+                if len(search_term) <= 10 and not any(c in search_term for c in "./\\"):
                     print(f"\n🔍 搜索文件: '{search_term}'...")
                     selected_file = quick_file_select(search_term)
                     if selected_file:
