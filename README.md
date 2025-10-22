@@ -7,7 +7,12 @@
 - 🗣️ **自然语言执行命令** - 用人话说，让 AI 执行终端命令
 - 📁 **@ 智能文件引用** - 交互式文件选择器，快速引用文件
 - 🧠 **对话记忆** - 记住上下文，支持连续对话
-- 📝 **Git 智能工具** - 自动生成 commit 消息、代码审查
+- 📝 **Git 完整工作流** - 一键完成 pull → commit → push，自动识别分支
+  - 智能生成 commit 消息（基于代码分析）
+  - 自动分支识别（dev/main/feature 等）
+  - 支持单独 pull/push 操作
+  - 完整的 5 步骤工作流或 3 步骤提交
+- 🔍 **代码审查** - AI 驱动的代码质量分析
 - 📊 **数据转换工具** - JSON/CSV/YAML/XML 格式互转、验证
 - 🔍 **环境诊断** - 自动检测开发环境配置和依赖问题
 - 📋 **待办事项管理** - 智能识别并管理日程安排和任务提醒
@@ -181,13 +186,17 @@ dnm "显示当前目录的磁盘使用情况"
 dnm "显示所有Python进程"
 dnm "查看端口8080的占用情况"
 
-# Git操作
+# Git基础操作
 dnm "显示git状态"
 dnm "查看最近5次提交记录"
 
 # Git智能功能
-dnm "生成commit消息"  # 智能分析代码变更并生成规范的commit消息
-dnm "对当前代码进行code review"  # 智能代码审查，按严重性分级报告问题
+dnm "生成commit消息"           # 仅生成commit消息，不提交
+dnm "提交代码"                 # 3步骤：add -> 生成消息 -> commit
+dnm "同步并提交"               # 5步骤：pull -> add -> 生成消息 -> commit -> push
+dnm "拉取代码"                 # 仅执行 git pull
+dnm "推送代码"                 # 仅执行 git push（自动识别分支 dev/main 等）
+dnm "对当前代码进行code review"  # AI代码审查，按严重性分级报告问题
 
 # 数据转换功能
 dnm "@data.json 转换为CSV"  # JSON转CSV格式
@@ -432,6 +441,8 @@ cd /Users/zhangyanhua/Desktop/AI/tushare/quantification/example
 ## 📚 更多文档
 
 ### 🎯 功能指南
+- **[docs/GIT_AUTO_COMMIT_WORKFLOW.md](docs/GIT_AUTO_COMMIT_WORKFLOW.md)** - Git 完整工作流详细实现（pull → commit → push）
+- **[docs/GIT_AUTO_COMMIT_QUICK_START.md](docs/GIT_AUTO_COMMIT_QUICK_START.md)** - Git 自动提交快速开始
 - **[docs/new_features_guide.md](docs/new_features_guide.md)** - 数据转换和环境诊断功能详细指南
 - **[docs/AT_FEATURE_DEMO.md](docs/AT_FEATURE_DEMO.md)** - @ 文件引用功能演示
 - **[docs/TODO_FEATURE_GUIDE.md](docs/TODO_FEATURE_GUIDE.md)** - 待办事项管理功能指南
@@ -495,8 +506,9 @@ dnm
 4. 🔍 输入 `tools` 查看所有可用功能
 5. 💡 输入 `help` 查看功能帮助
 6. 📋 输入 `todos` 查看待办事项
-7. 🎯 尝试数据转换：`@data.json 转换为CSV`
-8. 🔍 尝试环境诊断：`检查开发环境`
+7. 🎯 尝试 Git 工作流：`同步并提交`（自动 pull → commit → push）
+8. 🎯 尝试数据转换：`@data.json 转换为CSV`
+9. 🔍 尝试环境诊断：`检查开发环境`
 
 ---
 
