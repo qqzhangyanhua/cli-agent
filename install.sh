@@ -3,7 +3,7 @@
 
 set -e
 
-echo "🚀 开始安装 AI Agent CLI..."
+echo "🚀 开始安装 DNM CLI..."
 echo ""
 
 # 获取脚本所在目录
@@ -63,11 +63,11 @@ fi
 
 # 复制主程序
 echo "📋 复制程序文件..."
-cp "${SCRIPT_DIR}/ai-agent" "${INSTALL_DIR}/ai-agent"
-chmod +x "${INSTALL_DIR}/ai-agent"
+cp "${SCRIPT_DIR}/dnm" "${INSTALL_DIR}/dnm"
+chmod +x "${INSTALL_DIR}/dnm"
 
 # 创建配置目录
-CONFIG_DIR="${HOME}/.config/ai-agent"
+CONFIG_DIR="${HOME}/.config/dnm"
 if [ ! -d "${CONFIG_DIR}" ]; then
     echo "📁 创建配置目录: ${CONFIG_DIR}"
     mkdir -p "${CONFIG_DIR}"
@@ -98,7 +98,7 @@ MODULES=(
     "todo_tools.py"
 )
 
-# 将模块复制到脚本同目录（让ai-agent能找到）
+# 将模块复制到脚本同目录（让dnm能找到）
 for module in "${MODULES[@]}"; do
     if [ -f "${SCRIPT_DIR}/${module}" ]; then
         cp "${SCRIPT_DIR}/${module}" "${INSTALL_DIR}/${module}"
@@ -125,7 +125,7 @@ fi
 
 echo ""
 echo "🧪 测试安装..."
-if "${INSTALL_DIR}/ai-agent" --version &> /dev/null; then
+if "${INSTALL_DIR}/dnm" --version &> /dev/null; then
     echo "✅ 安装测试成功！"
 else
     echo "⚠️  安装测试失败，可能需要手动检查依赖"
@@ -133,17 +133,17 @@ else
 fi
 
 echo ""
-echo "✅ 安装完成！"
+echo "✅ DNM 安装完成！"
 echo ""
 echo "📖 使用方法:"
-echo "   ai-agent                      # 进入交互模式"
-echo "   ai-agent \"列出所有文件\"      # 执行单条命令"
-echo "   ai-agent --help               # 查看帮助"
-echo "   ai-agent files                # 查看@文件引用功能"
+echo "   dnm                      # 进入交互模式"
+echo "   dnm \"列出所有文件\"      # 执行单条命令"
+echo "   dnm --help               # 查看帮助"
+echo "   dnm files                # 查看@文件引用功能"
 echo ""
 echo "🎯 新功能:"
 echo "   • 输入 @ 启动交互式文件选择器"
 echo "   • 输入 @文件名 快速搜索文件"
 echo "   • 支持自然语言文件操作"
 echo ""
-echo "🎉 享受使用 AI Agent!"
+echo "🎉 享受使用 DNM!"
