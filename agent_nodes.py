@@ -28,7 +28,6 @@ def file_reference_processor(state: AgentState) -> dict:
     """处理文件引用，解析 @ 语法并读取文件内容"""
     user_input = state["user_input"]
 
-    print(f"\n[文件引用] 检查输入中的 @ 引用...")
 
     # 解析文件引用
     processed_input, file_references = parse_file_references(user_input)

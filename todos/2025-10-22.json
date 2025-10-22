@@ -2,6 +2,20 @@
   "date": "2025-10-22",
   "todos": [
     {
+      "id": "4c64ce85-a299-4b2c-972f-14faed551975",
+      "time": "15:30",
+      "content": "测试待办项目-从安装目录添加",
+      "status": "pending",
+      "created_at": "2025-10-22 16:01:07"
+    },
+    {
+      "id": "e68d2a57-2daa-46cc-a6b3-36f7b9268d74",
+      "time": "16:45",
+      "content": "测试待办-从Desktop目录添加",
+      "status": "pending",
+      "created_at": "2025-10-22 16:01:25"
+    },
+    {
       "id": "ad855f50-496c-490a-acd9-409bae593f04",
       "time": "18:00",
       "content": "给cris打电话",

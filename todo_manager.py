@@ -14,13 +14,18 @@ import uuid
 class TodoManager:
     """待办事项管理器"""
     
-    def __init__(self, todos_dir: str = "todos"):
+    def __init__(self, todos_dir: Optional[str] = None):
         """
         初始化待办事项管理器
         
         Args:
-            todos_dir: 待办事项存储目录
+            todos_dir: 待办事项存储目录，默认为脚本所在目录下的 todos 文件夹
         """
+        if todos_dir is None:
+            # 获取当前脚本所在的目录（安装目录）
+            script_dir = Path(__file__).parent.absolute()
+            todos_dir = script_dir / "todos"
+        
         self.todos_dir = Path(todos_dir)
         self.todos_dir.mkdir(exist_ok=True)
     
