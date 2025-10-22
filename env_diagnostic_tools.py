@@ -36,6 +36,8 @@ class EnvironmentDiagnostic:
                 [sys.executable, "-m", "pip", "--version"],
                 capture_output=True,
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 timeout=5
             )
             if pip_result.returncode == 0:
@@ -109,6 +111,8 @@ class EnvironmentDiagnostic:
                 [sys.executable, "-m", "pip", "list", "--format=json"],
                 capture_output=True,
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 timeout=10
             )
             if result.returncode == 0:
@@ -148,6 +152,8 @@ class EnvironmentDiagnostic:
                 command,
                 capture_output=True,
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 timeout=5
             )
             if result.returncode == 0:

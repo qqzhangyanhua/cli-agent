@@ -27,6 +27,8 @@ class GitTools:
                 cwd=self.working_dir,
                 capture_output=True,
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 timeout=5,
             )
             return result.returncode == 0
@@ -58,6 +60,8 @@ class GitTools:
                 cwd=self.working_dir,
                 capture_output=True,
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 timeout=5,
             )
 
@@ -109,7 +113,7 @@ class GitTools:
                 cmd.append("--cached")
 
             result = subprocess.run(
-                cmd, cwd=self.working_dir, capture_output=True, text=True, timeout=10
+                cmd, cwd=self.working_dir, capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=10
             )
 
             diff_output = result.stdout.strip()
@@ -125,6 +129,8 @@ class GitTools:
                 cwd=self.working_dir,
                 capture_output=True,
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 timeout=5,
             )
 
@@ -176,6 +182,8 @@ class GitTools:
                 cwd=self.working_dir,
                 capture_output=True,
                 text=True,
+                encoding='utf-8',
+                errors='replace',
                 timeout=5,
             )
 

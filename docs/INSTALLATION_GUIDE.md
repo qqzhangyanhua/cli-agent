@@ -1,229 +1,493 @@
-# 🚀 AI智能体安装指南
+# DNM CLI 安装指南
 
-## 📋 系统要求
+本文档详细介绍了在不同操作系统上安装 DNM CLI 的方法。
 
-- **Python**: 3.8+ (推荐 3.11+)
-- **操作系统**: macOS, Linux, Windows (WSL)
-- **内存**: 最少 512MB 可用内存
-- **网络**: 需要访问互联网下载依赖
+## 目录
 
-## 🎯 快速安装
+- [系统要求](#系统要求)
+- [安装方法](#安装方法)
+  - [跨平台安装（推荐）](#跨平台安装推荐)
+  - [Windows 安装](#windows-安装)
+  - [macOS 安装](#macos-安装)
+  - [Linux 安装](#linux-安装)
+- [配置环境变量](#配置环境变量)
+- [验证安装](#验证安装)
+- [卸载](#卸载)
+- [常见问题](#常见问题)
 
-### 1. 一键安装
+---
+
+## 系统要求
+
+- **Python**: 3.8 或更高版本
+- **pip**: Python 包管理器
+- **网络连接**: 用于下载依赖包
+
+### 检查系统要求
+
 ```bash
-cd /path/to/ai-agent/directory
+# 检查 Python 版本
+python --version   # Windows
+python3 --version  # macOS/Linux
+
+# 检查 pip
+pip --version      # Windows
+pip3 --version     # macOS/Linux
+```
+
+---
+
+## 安装方法
+
+### 跨平台安装（推荐）
+
+使用 Python 安装脚本，适用于所有平台：
+
+```bash
+# 1. 克隆项目
+git clone <repository-url>
+cd cli-agent
+
+# 2. 运行安装脚本
+python install.py              # Windows
+python3 install.py             # macOS/Linux
+
+# 3. 自定义安装目录（可选）
+python install.py --dir /your/custom/path
+
+# 4. 仅用户安装，不需要管理员权限
+python install.py --user
+
+# 5. 跳过依赖安装（如果已安装）
+python install.py --skip-deps
+```
+
+**优点：**
+- ✅ 跨平台兼容
+- ✅ 自动检测系统
+- ✅ 智能配置路径
+- ✅ 详细的错误提示
+
+---
+
+### Windows 安装
+
+#### 方法1: PowerShell 脚本
+
+1. 打开 PowerShell（建议以管理员身份运行）
+
+2. 如果遇到执行策略限制，运行：
+   ```powershell
+   Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+   ```
+
+3. 运行安装脚本：
+   ```powershell
+   cd cli-agent
+   powershell -ExecutionPolicy Bypass -File install.ps1
+   ```
+
+4. 或者自定义安装目录：
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File install.ps1 "C:\your\custom\path"
+   ```
+
+#### 方法2: Python 脚本（推荐）
+
+```powershell
+cd cli-agent
+python install.py
+```
+
+#### 安装位置
+
+- **默认位置**: `%LOCALAPPDATA%\Programs\dnm`
+  - 通常是: `C:\Users\<用户名>\AppData\Local\Programs\dnm`
+- **配置目录**: `%APPDATA%\dnm`
+  - 通常是: `C:\Users\<用户名>\AppData\Roaming\dnm`
+
+#### Windows 特殊说明
+
+- 安装脚本会自动创建 `.bat` 批处理启动器
+- 如果 PATH 配置成功，重新打开终端即可使用 `dnm` 命令
+- 如果遇到 "找不到命令" 错误，需要手动配置 PATH（见下文）
+
+---
+
+### macOS 安装
+
+#### 方法1: Bash 脚本
+
+```bash
+cd cli-agent
+chmod +x install.sh
 ./install.sh
 ```
 
-### 2. 验证安装
+#### 方法2: Python 脚本
+
 ```bash
-ai-agent --version
-ai-agent --help
+cd cli-agent
+python3 install.py
 ```
 
-## 🔧 手动安装
+#### 安装位置
 
-如果自动安装失败，请按以下步骤手动安装：
+- **默认位置**: `~/.local/bin`
+- **配置目录**: `~/.config/dnm`
 
-### 步骤1: 安装Python依赖
+#### macOS 特殊说明
+
+- 需要将 `~/.local/bin` 添加到 PATH
+- 使用 Zsh (默认): 编辑 `~/.zshrc`
+- 使用 Bash: 编辑 `~/.bashrc`
+
+---
+
+### Linux 安装
+
+#### 方法1: Bash 脚本
+
 ```bash
-# 方法1: 使用requirements.txt
-python3 -m pip install -r requirements.txt --user
-
-# 方法2: 手动安装核心依赖
-python3 -m pip install --user langgraph langchain-core langchain-openai httpx requests python-dotenv
+cd cli-agent
+chmod +x install.sh
+./install.sh
 ```
 
-### 步骤2: 复制程序文件
+#### 方法2: Python 脚本
+
 ```bash
-# 创建安装目录
-mkdir -p ~/.local/bin
-
-# 复制主程序
-cp ai-agent ~/.local/bin/
-chmod +x ~/.local/bin/ai-agent
-
-# 复制模块文件
-cp *.py ~/.local/bin/
-cp mcp_config.json ~/.local/bin/
+cd cli-agent
+python3 install.py
 ```
 
-### 步骤3: 配置PATH
+#### 安装位置
+
+- **默认位置**: `~/.local/bin`
+- **配置目录**: `~/.config/dnm`
+
+#### Linux 特殊说明
+
+- 大多数发行版默认包含 `~/.local/bin` 在 PATH 中
+- 如果没有，需要手动添加到 shell 配置文件
+
+---
+
+## 配置环境变量
+
+### Windows
+
+#### 图形界面配置
+
+1. 右键 "此电脑" 或 "我的电脑"
+2. 点击 "属性"
+3. 点击 "高级系统设置"
+4. 点击 "环境变量"
+5. 在 "用户变量" 中找到 "Path"
+6. 点击 "编辑"
+7. 点击 "新建"
+8. 添加安装目录: `%LOCALAPPDATA%\Programs\dnm`
+9. 点击 "确定" 保存
+
+#### PowerShell 配置
+
+```powershell
+# 添加到用户 PATH
+$installDir = "$env:LOCALAPPDATA\Programs\dnm"
+$userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+[Environment]::SetEnvironmentVariable("Path", "$userPath;$installDir", "User")
+
+# 刷新当前会话
+$env:Path = [Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [Environment]::GetEnvironmentVariable("Path", "User")
+```
+
+### macOS / Linux
+
+#### Zsh (macOS 默认)
+
 ```bash
-# 添加到 ~/.bashrc 或 ~/.zshrc
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+echo 'export PATH="${HOME}/.local/bin:${PATH}"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+#### Bash
+
+```bash
+echo 'export PATH="${HOME}/.local/bin:${PATH}"' >> ~/.bashrc
 source ~/.bashrc
 ```
 
-## ❗ 常见问题解决
+#### Fish Shell
 
-### 问题1: ModuleNotFoundError: No module named 'langgraph'
-
-**原因**: Python依赖未正确安装
-
-**解决方案**:
 ```bash
-# 检查Python版本
-python3 --version
-which python3
-
-# 重新安装依赖
-python3 -m pip install --user langgraph langchain-core langchain-openai
-
-# 如果还是失败，尝试升级pip
-python3 -m pip install --upgrade pip
+fish_add_path ~/.local/bin
 ```
 
-### 问题2: ai-agent: command not found
+---
 
-**原因**: PATH配置问题
+## 验证安装
 
-**解决方案**:
+### 检查版本
+
 ```bash
-# 检查安装路径
-ls -la ~/.local/bin/ai-agent
-
-# 检查PATH
-echo $PATH
-
-# 添加到PATH
-export PATH="$HOME/.local/bin:$PATH"
-
-# 永久添加 (选择适合你的shell)
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc  # Bash
-echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc   # Zsh
-
-# 重新加载配置
-source ~/.bashrc  # 或 source ~/.zshrc
+dnm --version
 ```
 
-### 问题3: Python版本不匹配
-
-**原因**: 系统有多个Python版本，pip安装到了错误版本
-
-**解决方案**:
-```bash
-# 检查Python和pip版本
-python3 --version
-python3 -m pip --version
-
-# 确保使用正确的pip
-python3 -m pip install --user langgraph langchain-core langchain-openai
-
-# 如果有多个Python版本，指定具体版本
-python3.11 -m pip install --user langgraph langchain-core langchain-openai
+应该输出:
+```
+dnm 1.0.0
 ```
 
-### 问题4: 权限错误
+### 测试运行
 
-**原因**: 没有写入权限
-
-**解决方案**:
 ```bash
-# 使用用户安装模式
-python3 -m pip install --user langgraph langchain-core langchain-openai
+# 查看帮助
+dnm --help
 
-# 创建用户目录
-mkdir -p ~/.local/bin
+# 进入交互模式
+dnm
 
-# 检查目录权限
-ls -la ~/.local/
+# 执行单条命令
+dnm "列出当前目录文件"
 ```
 
-### 问题5: 网络连接问题
+### 检查依赖
 
-**原因**: 无法下载依赖包
-
-**解决方案**:
 ```bash
-# 使用国内镜像源
-python3 -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple --user langgraph langchain-core langchain-openai
-
-# 或使用阿里云镜像
-python3 -m pip install -i https://mirrors.aliyun.com/pypi/simple/ --user langgraph langchain-core langchain-openai
+# 检查 Python 模块是否安装
+python -c "import langgraph; import langchain_core; import langchain_openai; print('依赖检查通过')"
 ```
 
-## 🧪 安装验证
+---
 
-### 基本功能测试
-```bash
-# 1. 版本检查
-ai-agent --version
+## 卸载
 
-# 2. 帮助信息
-ai-agent --help
+### 使用卸载脚本
 
-# 3. 简单命令测试
-ai-agent "hello"
+#### Windows
 
-# 4. 文件引用功能测试
-ai-agent "files"
+```powershell
+# PowerShell 脚本
+powershell -ExecutionPolicy Bypass -File uninstall.ps1
+
+# Python 脚本
+python uninstall.py
 ```
 
-### 交互模式测试
-```bash
-# 启动交互模式
-ai-agent
-
-# 测试基本功能
-👤 你: hello
-👤 你: files
-👤 你: @
-👤 你: exit
-```
-
-## 🔄 卸载
-
-如果需要卸载AI智能体：
+#### macOS / Linux
 
 ```bash
-# 运行卸载脚本
+# Bash 脚本
 ./uninstall.sh
 
-# 或手动删除
-rm -f ~/.local/bin/ai-agent
-rm -f ~/.local/bin/agent_*.py
-rm -f ~/.local/bin/file_reference_parser.py
-rm -f ~/.local/bin/interactive_file_selector.py
-rm -f ~/.local/bin/mcp_*.py
-rm -f ~/.local/bin/git_tools.py
-rm -f ~/.local/bin/mcp_config.json
+# Python 脚本
+python3 uninstall.py
 ```
 
-## 📞 获取帮助
+### 选项
 
-如果遇到其他问题：
-
-1. **查看日志**: 运行时添加 `-v` 参数查看详细信息
-2. **检查配置**: 确认 `mcp_config.json` 和 `agent_config.py` 配置正确
-3. **重新安装**: 先卸载再重新安装
-4. **环境检查**: 确认Python环境和依赖版本
-
-### 环境信息收集
 ```bash
-# 收集环境信息用于问题诊断
-echo "=== 系统信息 ==="
-uname -a
-echo "=== Python信息 ==="
-python3 --version
-which python3
-python3 -m pip --version
-echo "=== PATH信息 ==="
-echo $PATH
-echo "=== 已安装包 ==="
-python3 -m pip list | grep -E "(langgraph|langchain)"
-echo "=== 文件权限 ==="
-ls -la ~/.local/bin/ai-agent
+# 从自定义目录卸载
+python uninstall.py --dir /your/custom/path
+
+# 强制卸载，不询问确认
+python uninstall.py --force
+
+# 保留配置目录
+python uninstall.py --keep-config
 ```
 
-## 🎉 安装成功
+### 手动卸载
 
-安装成功后，您可以：
+#### Windows
 
-- ✅ 使用自然语言执行终端命令
-- ✅ 通过 `@` 符号交互式选择文件
-- ✅ 享受智能对话和记忆功能
-- ✅ 使用MCP工具进行文件操作
-- ✅ 生成Git commit消息
+1. 删除安装目录: `%LOCALAPPDATA%\Programs\dnm`
+2. 删除配置目录: `%APPDATA%\dnm`
+3. 从 PATH 中移除安装目录
 
-**开始使用**: `ai-agent` 进入交互模式，输入 `@` 体验文件选择器！
+#### macOS / Linux
+
+1. 删除安装文件:
+   ```bash
+   rm ~/.local/bin/dnm
+   rm ~/.local/bin/ai-agent
+   rm ~/.local/bin/agent_*.py
+   rm ~/.local/bin/mcp_*.py
+   # ... 其他模块文件
+   ```
+
+2. 删除配置目录:
+   ```bash
+   rm -rf ~/.config/dnm
+   ```
+
+3. 从 shell 配置文件中移除 PATH 配置
+
+---
+
+## 常见问题
+
+### Q1: 安装后找不到 `dnm` 命令
+
+**Windows:**
+- 确认 PATH 是否配置正确
+- 重新打开终端（新 PATH 生效）
+- 使用完整路径测试: `%LOCALAPPDATA%\Programs\dnm\dnm.bat --version`
+
+**macOS/Linux:**
+- 检查 `~/.local/bin` 是否在 PATH 中
+- 运行: `echo $PATH | grep ".local/bin"`
+- 重新加载配置: `source ~/.zshrc` 或 `source ~/.bashrc`
+
+### Q2: Python 依赖安装失败
+
+```bash
+# 手动安装依赖
+pip install --user langgraph langchain-core langchain-openai
+
+# 如果网络问题，使用国内镜像
+pip install --user -i https://pypi.tuna.tsinghua.edu.cn/simple langgraph langchain-core langchain-openai
+```
+
+### Q3: Windows 执行策略限制
+
+```powershell
+# 查看当前策略
+Get-ExecutionPolicy
+
+# 临时允许执行
+powershell -ExecutionPolicy Bypass -File install.ps1
+
+# 永久更改（当前用户）
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+### Q4: macOS 权限问题
+
+```bash
+# 给脚本添加执行权限
+chmod +x install.sh
+chmod +x uninstall.sh
+
+# 如果安装目录权限不足
+sudo mkdir -p ~/.local/bin
+sudo chown -R $USER ~/.local/bin
+```
+
+### Q5: 版本升级
+
+```bash
+# 1. 卸载旧版本
+python uninstall.py --keep-config
+
+# 2. 拉取最新代码
+git pull origin main
+
+# 3. 重新安装
+python install.py
+```
+
+### Q6: 多版本 Python 环境
+
+```bash
+# 指定 Python 版本安装
+python3.9 install.py
+python3.10 install.py
+
+# 使用虚拟环境
+python -m venv venv
+source venv/bin/activate  # macOS/Linux
+venv\Scripts\activate     # Windows
+python install.py
+```
+
+### Q7: 网络代理问题
+
+```bash
+# 设置 pip 代理
+export HTTP_PROXY=http://proxy.example.com:8080
+export HTTPS_PROXY=http://proxy.example.com:8080
+
+# Windows PowerShell
+$env:HTTP_PROXY = "http://proxy.example.com:8080"
+$env:HTTPS_PROXY = "http://proxy.example.com:8080"
+```
+
+---
+
+## 开发者安装
+
+如果你要开发或调试 DNM CLI:
+
+```bash
+# 1. 克隆项目
+git clone <repository-url>
+cd cli-agent
+
+# 2. 创建虚拟环境
+python -m venv venv
+source venv/bin/activate  # macOS/Linux
+venv\Scripts\activate     # Windows
+
+# 3. 安装依赖
+pip install -r requirements.txt
+
+# 4. 直接运行（不安装）
+python dnm "你的命令"
+python ai-agent "你的命令"
+
+# 5. 开发模式安装（软链接）
+pip install -e .
+```
+
+---
+
+## 系统特定注意事项
+
+### Windows 10/11
+
+- 推荐使用 Windows Terminal 获得最佳体验
+- PowerShell 7+ 支持更好的 Unicode 和 emoji
+- 可以在 WSL2 中使用 Linux 安装方法
+
+### macOS Catalina 及更高版本
+
+- 默认使用 Zsh，不是 Bash
+- 需要配置 `~/.zshrc` 而不是 `~/.bashrc`
+- 可能需要允许在 "安全性与隐私" 中运行
+
+### Ubuntu/Debian
+
+```bash
+# 如果缺少 Python
+sudo apt update
+sudo apt install python3 python3-pip
+
+# 如果缺少 git
+sudo apt install git
+```
+
+### CentOS/RHEL
+
+```bash
+# 如果缺少 Python
+sudo yum install python3 python3-pip
+
+# 如果缺少 git
+sudo yum install git
+```
+
+---
+
+## 获取帮助
+
+如果遇到问题:
+
+1. 查看 [README.md](../README.md) 的常见问题部分
+2. 查看 [项目文档](../docs/)
+3. 提交 Issue 到 GitHub 仓库
+4. 查看安装脚本的详细输出信息
+
+---
+
+**祝你安装顺利！🎉**

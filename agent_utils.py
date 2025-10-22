@@ -38,6 +38,8 @@ def execute_terminal_command(command: str) -> Dict:
             shell=True,
             capture_output=True,
             text=True,
+            encoding='utf-8',
+            errors='replace',
             timeout=COMMAND_TIMEOUT,
             cwd=WORKING_DIRECTORY
         )

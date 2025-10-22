@@ -19,28 +19,83 @@
 
 ## 📦 快速安装
 
-### 步骤1: 克隆并安装
+### 跨平台安装（推荐）
+
+使用 Python 安装脚本，支持 Windows、macOS 和 Linux：
 
 ```bash
-cd /Users/zhangyanhua/Desktop/AI/tushare/quantification/example
+# 克隆项目
+git clone <repository-url>
+cd cli-agent
+
+# 使用 Python 安装脚本
+python install.py
+
+# 如果需要自定义安装目录
+python install.py --dir /your/custom/path
+```
+
+### Windows 安装
+
+#### 方法1: PowerShell 脚本（推荐）
+
+```powershell
+# 在 PowerShell 中运行（需要管理员权限或允许执行策略）
+powershell -ExecutionPolicy Bypass -File install.ps1
+```
+
+#### 方法2: Python 脚本
+
+```powershell
+python install.py
+```
+
+安装后，`dnm` 命令会被添加到系统 PATH。重新打开终端即可使用。
+
+### macOS / Linux 安装
+
+#### 方法1: Bash 脚本
+
+```bash
+cd cli-agent
 ./install.sh
 ```
 
-### 步骤2: 配置 PATH（如果需要）
+#### 方法2: Python 脚本
 
+```bash
+python3 install.py
+```
+
+### 配置 PATH（如果需要）
+
+**macOS / Linux:**
 ```bash
 # 添加到 ~/.zshrc 或 ~/.bashrc
 echo 'export PATH="${HOME}/.local/bin:${PATH}"' >> ~/.zshrc
 source ~/.zshrc
 ```
 
-### 步骤3: 验证安装
+**Windows:**
+安装脚本会自动提示配置 PATH，或手动添加：
+1. 右键 "此电脑" -> "属性" -> "高级系统设置"
+2. 点击 "环境变量"
+3. 在 "用户变量" 中编辑 "Path"
+4. 添加安装目录（通常是 `%LOCALAPPDATA%\Programs\dnm`）
+
+### 验证安装
 
 ```bash
 dnm --version
 ```
 
 看到版本号 `1.0.0` 就成功了！✅
+
+### Windows 编码兼容性
+
+本项目已经针对 Windows 平台的编码问题进行了全面修复。所有 Git 命令和终端操作都能正确处理 UTF-8 编码的输出。
+
+如果遇到编码相关错误（如 `UnicodeDecodeError`），请参考 [docs/WINDOWS_ENCODING_FIX.md](docs/WINDOWS_ENCODING_FIX.md) 获取详细说明和解决方案。
 
 ---
 

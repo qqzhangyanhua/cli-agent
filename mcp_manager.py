@@ -119,7 +119,9 @@ class MCPManager:
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                text=True
+                text=True,
+                encoding='utf-8',
+                errors='replace'
             )
             
             # 发送请求并获取响应
