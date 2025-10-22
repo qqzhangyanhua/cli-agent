@@ -97,3 +97,4 @@ Write-Host "💡 提示: 如果之前手动添加了 PATH，请记得删除:" -F
 Write-Host "   $INSTALL_DIR" -ForegroundColor Yellow
 
 
+

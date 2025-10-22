@@ -23,6 +23,8 @@ def execute_terminal_command(command: str) -> Dict:
             "error": str
         }
     """
+    import os
+    
     # 检查危险命令
     for dangerous in DANGEROUS_COMMANDS:
         if dangerous in command.lower():
@@ -32,16 +34,25 @@ def execute_terminal_command(command: str) -> Dict:
                 "error": f"⚠️ 拒绝执行危险命令: {command}"
             }
     
+    # 确定工作目录 - 如果配置的路径不存在，使用当前目录
+    work_dir = WORKING_DIRECTORY
+    if not os.path.exists(work_dir):
+        work_dir = os.getcwd()
+    
+    # Windows 下使用 GBK 编码，其他系统使用 UTF-8
+    import platform
+    encoding = 'gbk' if platform.system() == 'Windows' else 'utf-8'
+    
     try:
         result = subprocess.run(
             command,
             shell=True,
             capture_output=True,
             text=True,
-            encoding='utf-8',
+            encoding=encoding,
             errors='replace',
             timeout=COMMAND_TIMEOUT,
-            cwd=WORKING_DIRECTORY
+            cwd=work_dir
         )
         
         output = result.stdout if result.stdout else "(命令执行成功，无输出)"

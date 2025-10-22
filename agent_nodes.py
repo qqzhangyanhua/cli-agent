@@ -270,38 +270,75 @@ def intent_analyzer(state: AgentState) -> dict:
 
 def command_generator(state: AgentState) -> dict:
     """生成终端命令"""
+    import platform
+    
     user_input = state["user_input"]
     recent_commands = memory.get_recent_commands()
+    
+    # 检测操作系统
+    os_type = platform.system()
+    
+    # 根据操作系统设置示例
+    if os_type == "Windows":
+        examples = """示例（Windows）:
+- "列出当前目录的所有文件" -> dir 或 Get-ChildItem
+- "查看Python版本" -> python --version
+- "显示当前路径" -> cd
+- "查看文件内容" -> type filename.txt 或 Get-Content filename.txt
+- "创建目录" -> mkdir dirname
+- "删除文件" -> del filename
+- "复制文件" -> copy source dest
+- "移动文件" -> move source dest"""
+    else:
+        examples = """示例（Unix/Linux/macOS）:
+- "列出当前目录的所有文件" -> ls -la
+- "查看Python版本" -> python3 --version
+- "显示当前路径" -> pwd
+- "查看文件内容" -> cat filename.txt
+- "创建目录" -> mkdir dirname
+- "删除文件" -> rm filename
+- "复制文件" -> cp source dest
+- "移动文件" -> mv source dest"""
 
     prompt = f"""将用户的自然语言请求转换为终端命令。
 
+操作系统: {os_type}
 {recent_commands}
 
 当前请求: {user_input}
 
-示例:
-- "列出当前目录的所有文件" -> ls -la
-- "查看Python版本" -> python3 --version
-- "显示当前路径" -> pwd
+{examples}
 
-只返回命令本身，不要解释:"""
+**重要**: 
+- 必须生成适合 {os_type} 系统的命令
+- 只返回命令本身，不要解释
+- 不要添加注释或说明
+
+命令:"""
 
     result = llm_code.invoke([HumanMessage(content=prompt)])
     command = result.content.strip()
 
     print(f"[命令生成] {command}")
     print(f"           使用模型: {LLM_CONFIG2['model']}")
+    print(f"           操作系统: {os_type}")
 
     return {"command": command}
 
 
 def multi_step_planner(state: AgentState) -> dict:
     """多步骤规划"""
+    import platform
+    
     user_input = state["user_input"]
     recent_commands = memory.get_recent_commands()
+    
+    # 检测操作系统
+    os_type = platform.system()
 
     prompt = f"""分析用户请求，返回JSON格式的执行计划。
 
+操作系统: {os_type}
 {recent_commands}
 
 用户请求: {user_input}
@@ -313,6 +350,8 @@ def multi_step_planner(state: AgentState) -> dict:
   "file_content": "文件内容",
   "commands": ["命令1", "命令2"]
 }}
+
+**重要**: 生成的命令必须适合 {os_type} 系统
 
 只返回JSON:"""
 
@@ -327,6 +366,7 @@ def multi_step_planner(state: AgentState) -> dict:
     try:
         plan = json.loads(plan_text)
         print(f"[多步骤规划] 使用模型: {LLM_CONFIG2['model']}")
+        print(f"            操作系统: {os_type}")
         print(f"            需要创建文件: {plan.get('needs_file_creation', False)}")
         print(f"            命令数量: {len(plan.get('commands', []))}")
 
