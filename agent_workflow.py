@@ -17,6 +17,9 @@ from agent_nodes import (
     question_answerer,
     data_conversion_processor,
     environment_diagnostic_processor,
+    git_add_node,
+    git_commit_message_generator_node,
+    git_commit_executor_node,
 )
 from agent_tool_calling import simple_tool_calling_node
 
@@ -29,6 +32,7 @@ def route_by_intent(state: AgentState) -> str:
     """
     根据意图路由
     待办/git_commit/code_review 相关已经在 tool_calling 节点完成，直接结束
+    auto_commit 需要走完整的 Git 提交工作流
     data_conversion/environment_diagnostic 需要专门节点处理
     """
     intent = state["intent"]
@@ -36,6 +40,9 @@ def route_by_intent(state: AgentState) -> str:
     if intent in ["add_todo", "query_todo", "git_commit", "code_review"]:
         # 工具调用节点已完成处理，直接结束
         return "end"
+    elif intent == "auto_commit":
+        # Git 自动提交工作流（多步骤）
+        return "git_add"
     elif intent == "data_conversion":
         # 数据转换需要专门处理
         return "process_data_conversion"
@@ -63,6 +70,22 @@ def route_after_planning(state: AgentState) -> str:
         return "create_file"
     else:
         return "execute_multi_commands"
+
+
+def route_after_git_add(state: AgentState) -> str:
+    """Git add 后的路由"""
+    if state.get("git_add_success", False):
+        return "generate_commit_message"
+    else:
+        return "end"  # 失败则直接结束
+
+
+def route_after_commit_message(state: AgentState) -> str:
+    """生成 commit 消息后的路由"""
+    if state.get("git_commit_message_generated", False):
+        return "execute_commit"
+    else:
+        return "end"  # 失败则直接结束
 
 
 # ============================================
@@ -95,6 +118,10 @@ def build_agent() -> StateGraph:
     workflow.add_node("answer_question", question_answerer)
     workflow.add_node("process_data_conversion", data_conversion_processor)
     workflow.add_node("process_env_diagnostic", environment_diagnostic_processor)
+    # Git 自动提交工作流节点
+    workflow.add_node("git_add", git_add_node)
+    workflow.add_node("generate_commit_message", git_commit_message_generator_node)
+    workflow.add_node("execute_commit", git_commit_executor_node)
 
     # 设置入口
     workflow.set_entry_point("process_file_references")
@@ -108,6 +135,7 @@ def build_agent() -> StateGraph:
         route_by_intent,
         {
             "end": END,  # 待办/git_commit/code_review 直接结束
+            "git_add": "git_add",  # Git 自动提交工作流
             "process_data_conversion": "process_data_conversion",
             "process_env_diagnostic": "process_env_diagnostic",
             "generate_command": "generate_command",
@@ -141,6 +169,25 @@ def build_agent() -> StateGraph:
     # 数据转换和环境诊断路径
     workflow.add_edge("process_data_conversion", END)
     workflow.add_edge("process_env_diagnostic", END)
+
+    # Git 自动提交工作流路径
+    workflow.add_conditional_edges(
+        "git_add",
+        route_after_git_add,
+        {
+            "generate_commit_message": "generate_commit_message",
+            "end": END
+        }
+    )
+    workflow.add_conditional_edges(
+        "generate_commit_message",
+        route_after_commit_message,
+        {
+            "execute_commit": "execute_commit",
+            "end": END
+        }
+    )
+    workflow.add_edge("execute_commit", END)
 
     # 结束节点
     workflow.add_edge("format_response", END)

@@ -14,6 +14,7 @@ from agent_llm import llm
 from todo_tools import todo_tools, add_todo_tool, query_todo_tool
 from git_commit_tools import generate_commit_tool
 from code_review_tools import code_review_tool
+from auto_commit_tools import auto_commit_tool
 
 
 def create_tool_agent():
@@ -145,28 +146,32 @@ def simple_tool_calling_node(state: AgentState, enable_streaming: bool = True) -
 2. query_todo - 查询待办事项
    参数: type (today/date/range/search), date (可选), start_date (可选), end_date (可选), keyword (可选)
 
-3. generate_commit - 生成Git commit消息
+3. generate_commit - 生成Git commit消息（仅生成，不提交）
    参数: 无（自动分析git diff）
    适用场景: "生成commit日志"、"生成commit消息"、"帮我写commit message"
 
-4. code_review - 代码审查
+4. auto_commit - 自动执行完整的Git提交流程
+   参数: 无（自动执行 git add -> 生成消息 -> git commit）
+   适用场景: "提交代码"、"自动提交"、"一键提交"、"生成并提交commit"
+
+5. code_review - 代码审查
    参数: 无（自动分析git diff）
    适用场景: "代码审查"、"code review"、"检查代码"、"review代码"、"对当前代码进行code-review"
 
-5. data_conversion - 数据格式转换
+6. data_conversion - 数据格式转换
    参数: operation (convert/validate/beautify), source_format (json/yaml/csv/xml/auto), target_format (可选)
    适用场景: "@data.json 转换为CSV"、"验证JSON格式"、"美化JSON"
    注意: 需要用户使用 @ 引用文件
 
-6. environment_diagnostic - 环境诊断
+7. environment_diagnostic - 环境诊断
    参数: 无
    适用场景: "检查开发环境"、"诊断环境"、"环境检测"
 
-7. get_stock_info - 获取股票实时信息
+8. get_stock_info - 获取股票实时信息
    参数: stock_code (股票代码或名称)
    适用场景: "获取XX股票价格"、"查询XX股价"、"XX股票最新价格"、"XX股票信息"
 
-8. terminal_command - 执行终端命令
+9. terminal_command - 执行终端命令
    参数: 无（自动生成命令）
    适用场景: 
    - "列出当前目录下的json文件"、"ls *.json"
@@ -177,7 +182,7 @@ def simple_tool_calling_node(state: AgentState, enable_streaming: bool = True) -
    - "查看文件内容"、"cat xxx"
    - 任何可以用终端命令完成的操作
 
-9. none - 不需要工具（普通问答）
+10. none - 不需要工具（普通问答）
 
 用户输入: {user_input}
 
@@ -191,7 +196,8 @@ def simple_tool_calling_node(state: AgentState, enable_streaming: bool = True) -
 
 注意：
 - 将相对日期（今天、明天等）转换为具体日期
-- 如果用户提到"commit"、"提交"、"git"相关，优先选择 generate_commit
+- 如果用户要求"提交代码"、"一键提交"、"自动提交"、"生成并提交"，选择 auto_commit（完整流程）
+- 如果用户只要求"生成commit日志"、"生成commit消息"（不提交），选择 generate_commit
 - 如果用户提到"code review"、"代码审查"、"检查代码"、"review"，优先选择 code_review
 - 如果用户使用 @ 引用了文件并要求"转换"、"验证"、"美化"，选择 data_conversion
 - 如果用户要求"检查环境"、"诊断环境"、"环境检测"，选择 environment_diagnostic
@@ -238,6 +244,13 @@ def simple_tool_calling_node(state: AgentState, enable_streaming: bool = True) -
             return {
                 "intent": "git_commit",
                 "response": result_text
+            }
+
+        elif tool_name == "auto_commit":
+            # 自动提交：走完整的 Git 工作流（git add -> 生成消息 -> commit）
+            return {
+                "intent": "auto_commit",
+                "response": ""  # 由工作流节点处理
             }
 
         elif tool_name == "code_review":

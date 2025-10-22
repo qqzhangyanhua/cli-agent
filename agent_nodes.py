@@ -17,6 +17,7 @@ from file_reference_parser import parse_file_references, file_parser
 from todo_manager import todo_manager
 from data_converter_tools import data_converter_tools
 from env_diagnostic_tools import env_diagnostic_tools
+from auto_commit_tools import git_add_all, git_commit_with_message
 
 
 # ============================================
@@ -1221,5 +1222,252 @@ def environment_diagnostic_processor(state: AgentState) -> dict:
         print(f"[环境诊断] ❌ 异常: {e}")
         return {
             "response": f"❌ 环境诊断出错: {str(e)}",
+            "error": str(e)
+        }
+
+
+# ============================================
+# Git 自动提交工作流节点
+# ============================================
+
+def git_add_node(state: AgentState) -> dict:
+    """
+    Git 工作流节点 1: 执行 git add .
+    暂存所有变更
+    """
+    print(f"\n📦 [Git 工作流 1/3] 暂存变更...")
+    
+    try:
+        result = git_add_all()
+        
+        if result["success"]:
+            files_count = result.get("files_count", 0)
+            print(f"[Git Add] ✅ {result['message']}")
+            
+            return {
+                "git_add_success": True,
+                "git_files_count": files_count,
+                "response": result["message"]
+            }
+        else:
+            error_msg = result.get("error", "git add 失败")
+            print(f"[Git Add] ❌ {error_msg}")
+            return {
+                "git_add_success": False,
+                "response": f"❌ Git 提交流程终止\n\n{error_msg}",
+                "error": error_msg
+            }
+    
+    except Exception as e:
+        print(f"[Git Add] ❌ 异常: {e}")
+        return {
+            "git_add_success": False,
+            "response": f"❌ Git add 执行失败: {str(e)}",
+            "error": str(e)
+        }
+
+
+def git_commit_message_generator_node(state: AgentState) -> dict:
+    """
+    Git 工作流节点 2: 生成 commit 消息
+    基于 git diff 分析代码变更并生成符合规范的 commit 消息
+    """
+    print(f"\n💡 [Git 工作流 2/3] 生成 commit 消息...")
+    
+    try:
+        # 分析变更
+        analysis = git_tools.analyze_changes()
+        
+        if not analysis["success"]:
+            error_msg = analysis.get("error", "分析变更失败")
+            print(f"[Commit 生成] ❌ {error_msg}")
+            return {
+                "git_commit_message_generated": False,
+                "response": f"❌ Git 提交流程终止\n\n步骤 1: ✅ 已暂存变更\n步骤 2: ❌ {error_msg}",
+                "error": error_msg
+            }
+        
+        # 准备 diff 内容
+        if analysis['has_staged']:
+            diff_content = analysis['staged_diff']
+        else:
+            error_msg = "没有已暂存的变更"
+            return {
+                "git_commit_message_generated": False,
+                "response": f"❌ Git 提交流程终止\n\n步骤 1: ✅ 已暂存变更\n步骤 2: ❌ {error_msg}",
+                "error": error_msg
+            }
+        
+        # 获取文件状态
+        status_lines = analysis['status'].split('\n')
+        
+        # 分类统计文件变更
+        deleted_files = []
+        modified_files = []
+        added_files = []
+        
+        for line in status_lines:
+            if not line.strip():
+                continue
+            if line.startswith(' D') or line.startswith('D '):
+                deleted_files.append(line[3:])
+            elif line.startswith(' M') or line.startswith('M '):
+                modified_files.append(line[3:])
+            elif line.startswith('??') or line.startswith('A '):
+                added_files.append(line[3:])
+        
+        file_stats = []
+        if deleted_files:
+            file_stats.append(f"删除 {len(deleted_files)} 个")
+        if modified_files:
+            file_stats.append(f"修改 {len(modified_files)} 个")
+        if added_files:
+            file_stats.append(f"新增 {len(added_files)} 个")
+        
+        file_stats_str = "、".join(file_stats) if file_stats else "未知变更"
+        
+        # 限制 diff 长度
+        max_diff_length = 8000
+        if len(diff_content) > max_diff_length:
+            diff_content = diff_content[:max_diff_length] + "\n\n... (diff太长，已截断)"
+        
+        # 获取最近的 commits 作为参考
+        recent_commits_str = "\n".join(analysis.get('recent_commits', [])[:5])
+        
+        # 生成 commit 消息
+        prompt = f"""你是一个专业的Git commit消息生成器。基于下面的代码变更，生成简洁、精确的commit消息。
+
+📊 变更统计:
+- 总计: {len(analysis['files_changed'])} 个文件 ({file_stats_str})
+
+📄 代码变更内容:
+```diff
+{diff_content}
+```
+
+📜 最近的commit记录(参考风格):
+{recent_commits_str if recent_commits_str else '(暂无历史commit)'}
+
+🎯 要求:
+1. 遵循 Conventional Commits 规范
+2. 使用中文描述
+3. 格式: <type>: <subject>
+4. type选择: feat/fix/refactor/docs/perf/test/chore
+5. subject要具体描述变更内容
+
+只返回一行commit消息，不要其他内容。"""
+        
+        result = llm_code.invoke([HumanMessage(content=prompt)])
+        commit_message = result.content.strip()
+        
+        # 清理可能的 markdown 格式
+        if commit_message.startswith("```"):
+            lines = commit_message.split('\n')
+            commit_message = '\n'.join(lines[1:-1]) if len(lines) > 2 else commit_message
+        
+        # 转义双引号
+        commit_message = commit_message.replace('"', "'")
+        
+        print(f"[Commit 生成] ✅ 生成完成")
+        print(f"[Commit 生成] 消息: {commit_message}")
+        
+        return {
+            "git_commit_message_generated": True,
+            "git_commit_message": commit_message,
+            "git_file_stats": file_stats_str,
+            "response": f"✅ 已生成 commit 消息:\n  {commit_message}"
+        }
+    
+    except Exception as e:
+        print(f"[Commit 生成] ❌ 异常: {e}")
+        return {
+            "git_commit_message_generated": False,
+            "response": f"❌ Git 提交流程终止\n\n步骤 1: ✅ 已暂存变更\n步骤 2: ❌ 生成 commit 消息失败: {str(e)}",
+            "error": str(e)
+        }
+
+
+def git_commit_executor_node(state: AgentState) -> dict:
+    """
+    Git 工作流节点 3: 执行 git commit
+    使用生成的 commit 消息提交代码
+    """
+    print(f"\n✍️  [Git 工作流 3/3] 提交代码...")
+    
+    commit_message = state.get("git_commit_message", "")
+    files_count = state.get("git_files_count", 0)
+    file_stats = state.get("git_file_stats", "")
+    
+    if not commit_message:
+        error_msg = "缺少 commit 消息"
+        return {
+            "response": f"❌ Git 提交流程终止\n\n步骤 1: ✅ 已暂存变更\n步骤 2: ✅ 已生成消息\n步骤 3: ❌ {error_msg}",
+            "error": error_msg
+        }
+    
+    try:
+        result = git_commit_with_message(commit_message)
+        
+        if result["success"]:
+            commit_hash = result.get("commit_hash", "")
+            print(f"[Git Commit] ✅ {result['message']}")
+            
+            # 生成最终响应
+            response = f"""
+🎉 Git 自动提交流程完成！
+
+{'─'*60}
+📦 步骤 1: ✅ 已暂存 {files_count} 个文件 ({file_stats})
+
+💡 步骤 2: ✅ 生成 commit 消息
+  {commit_message}
+
+✍️  步骤 3: ✅ 代码已提交 {f'(commit: {commit_hash[:7]})' if commit_hash else ''}
+{'─'*60}
+
+💡 提示: 使用 'git log' 查看提交历史
+"""
+            
+            return {
+                "response": response,
+                "git_commit_success": True,
+                "git_commit_hash": commit_hash
+            }
+        else:
+            error_msg = result.get("error", "git commit 失败")
+            print(f"[Git Commit] ❌ {error_msg}")
+            
+            response = f"""❌ Git 提交流程失败
+
+步骤 1: ✅ 已暂存 {files_count} 个文件
+步骤 2: ✅ 已生成 commit 消息
+步骤 3: ❌ {error_msg}
+
+你可以手动执行:
+  git commit -m "{commit_message}"
+"""
+            
+            return {
+                "response": response,
+                "git_commit_success": False,
+                "error": error_msg
+            }
+    
+    except Exception as e:
+        print(f"[Git Commit] ❌ 异常: {e}")
+        
+        response = f"""❌ Git 提交流程失败
+
+步骤 1: ✅ 已暂存 {files_count} 个文件
+步骤 2: ✅ 已生成 commit 消息
+步骤 3: ❌ 执行失败: {str(e)}
+
+你可以手动执行:
+  git commit -m "{commit_message}"
+"""
+        
+        return {
+            "response": response,
+            "git_commit_success": False,
             "error": str(e)
         }
