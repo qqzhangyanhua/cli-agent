@@ -13,6 +13,7 @@ from agent_config import AgentState
 from agent_llm import llm
 from todo_tools import todo_tools, add_todo_tool, query_todo_tool
 from git_commit_tools import generate_commit_tool
+from code_review_tools import code_review_tool
 
 
 def create_tool_agent():
@@ -148,7 +149,11 @@ def simple_tool_calling_node(state: AgentState, enable_streaming: bool = True) -
    参数: 无（自动分析git diff）
    适用场景: "生成commit日志"、"生成commit消息"、"帮我写commit message"
 
-4. none - 不需要工具（普通问答）
+4. code_review - 代码审查
+   参数: 无（自动分析git diff）
+   适用场景: "代码审查"、"code review"、"检查代码"、"review代码"、"对当前代码进行code-review"
+
+5. none - 不需要工具（普通问答）
 
 用户输入: {user_input}
 
@@ -163,6 +168,7 @@ def simple_tool_calling_node(state: AgentState, enable_streaming: bool = True) -
 注意：
 - 将相对日期（今天、明天等）转换为具体日期
 - 如果用户提到"commit"、"提交"、"git"相关，优先选择 generate_commit
+- 如果用户提到"code review"、"代码审查"、"检查代码"、"review"，优先选择 code_review
 - 如果无法判断，返回 {{"tool": "none", "args": {{}}}}
 """
 
@@ -202,6 +208,13 @@ def simple_tool_calling_node(state: AgentState, enable_streaming: bool = True) -
             result_text = generate_commit_tool.func("")
             return {
                 "intent": "git_commit",
+                "response": result_text
+            }
+
+        elif tool_name == "code_review":
+            result_text = code_review_tool.func("")
+            return {
+                "intent": "code_review",
                 "response": result_text
             }
 

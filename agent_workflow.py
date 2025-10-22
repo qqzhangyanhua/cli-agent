@@ -26,11 +26,11 @@ from agent_tool_calling import simple_tool_calling_node
 def route_by_intent(state: AgentState) -> str:
     """
     根据意图路由
-    待办/git_commit 相关已经在 tool_calling 节点完成，直接结束
+    待办/git_commit/code_review 相关已经在 tool_calling 节点完成，直接结束
     """
     intent = state["intent"]
 
-    if intent in ["add_todo", "query_todo", "git_commit"]:
+    if intent in ["add_todo", "query_todo", "git_commit", "code_review"]:
         # 工具调用节点已完成处理，直接结束
         return "end"
     elif intent == "terminal_command":

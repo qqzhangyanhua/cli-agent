@@ -89,6 +89,7 @@ MODULES=(
     "mcp_config.json"
     "git_tools.py"
     "git_commit_tools.py"
+    "code_review_tools.py"
     "file_reference_parser.py"
     "interactive_file_selector.py"
     "todo_manager.py"
