@@ -63,7 +63,7 @@ MAX_COMMAND_HISTORY = 20
 class AgentState(TypedDict):
     """智能体状态"""
     user_input: str
-    intent: Literal["terminal_command", "multi_step_command", "mcp_tool_call", "git_commit", "question", "add_todo", "query_todo", "unknown"]
+    intent: Literal["terminal_command", "multi_step_command", "mcp_tool_call", "git_commit", "question", "add_todo", "query_todo", "data_conversion", "environment_diagnostic", "unknown"]
     command: str
     commands: list
     command_output: str
@@ -88,3 +88,10 @@ class AgentState(TypedDict):
     todo_time: str
     todo_content: str
     todo_result: str
+    # 数据转换相关字段
+    data_conversion_type: str
+    source_format: str
+    target_format: str
+    conversion_result: str
+    # 环境诊断相关字段
+    diagnostic_result: str

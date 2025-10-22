@@ -15,6 +15,8 @@ from agent_nodes import (
     mcp_tool_executor,
     response_formatter,
     question_answerer,
+    data_conversion_processor,
+    environment_diagnostic_processor,
 )
 from agent_tool_calling import simple_tool_calling_node
 
@@ -27,12 +29,19 @@ def route_by_intent(state: AgentState) -> str:
     """
     根据意图路由
     待办/git_commit/code_review 相关已经在 tool_calling 节点完成，直接结束
+    data_conversion/environment_diagnostic 需要专门节点处理
     """
     intent = state["intent"]
 
     if intent in ["add_todo", "query_todo", "git_commit", "code_review"]:
         # 工具调用节点已完成处理，直接结束
         return "end"
+    elif intent == "data_conversion":
+        # 数据转换需要专门处理
+        return "process_data_conversion"
+    elif intent == "environment_diagnostic":
+        # 环境诊断需要专门处理
+        return "process_env_diagnostic"
     elif intent == "terminal_command":
         return "generate_command"
     elif intent == "multi_step_command":
@@ -84,6 +93,8 @@ def build_agent() -> StateGraph:
     workflow.add_node("execute_mcp_tool", mcp_tool_executor)
     workflow.add_node("format_response", response_formatter)
     workflow.add_node("answer_question", question_answerer)
+    workflow.add_node("process_data_conversion", data_conversion_processor)
+    workflow.add_node("process_env_diagnostic", environment_diagnostic_processor)
 
     # 设置入口
     workflow.set_entry_point("process_file_references")
@@ -96,7 +107,9 @@ def build_agent() -> StateGraph:
         "tool_calling",
         route_by_intent,
         {
-            "end": END,  # 待办/git_commit/普通问答 直接结束
+            "end": END,  # 待办/git_commit/code_review 直接结束
+            "process_data_conversion": "process_data_conversion",
+            "process_env_diagnostic": "process_env_diagnostic",
             "generate_command": "generate_command",
             "plan_steps": "plan_steps",
             "plan_mcp_tool": "plan_mcp_tool",
@@ -124,6 +137,10 @@ def build_agent() -> StateGraph:
     # MCP工具路径
     workflow.add_edge("plan_mcp_tool", "execute_mcp_tool")
     workflow.add_edge("execute_mcp_tool", "format_response")
+
+    # 数据转换和环境诊断路径
+    workflow.add_edge("process_data_conversion", END)
+    workflow.add_edge("process_env_diagnostic", END)
 
     # 结束节点
     workflow.add_edge("format_response", END)

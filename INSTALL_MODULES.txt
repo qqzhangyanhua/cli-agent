@@ -1,0 +1,25 @@
+# AI Agent 安装模块列表
+# 自动生成于: 2025-10-22 14:49:58
+
+MODULES=(
+    "agent_config.py"
+    "agent_llm.py"
+    "agent_memory.py"
+    "agent_nodes.py"
+    "agent_tool_calling.py"
+    "agent_ui.py"
+    "agent_utils.py"
+    "agent_workflow.py"
+    "code_review_tools.py"
+    "data_converter_tools.py"
+    "env_diagnostic_tools.py"
+    "file_reference_parser.py"
+    "git_commit_tools.py"
+    "git_tools.py"
+    "interactive_file_selector.py"
+    "mcp_config.json"
+    "mcp_filesystem.py"
+    "mcp_manager.py"
+    "todo_manager.py"
+    "todo_tools.py"
+)

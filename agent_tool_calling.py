@@ -153,7 +153,16 @@ def simple_tool_calling_node(state: AgentState, enable_streaming: bool = True) -
    参数: 无（自动分析git diff）
    适用场景: "代码审查"、"code review"、"检查代码"、"review代码"、"对当前代码进行code-review"
 
-5. none - 不需要工具（普通问答）
+5. data_conversion - 数据格式转换
+   参数: operation (convert/validate/beautify), source_format (json/yaml/csv/xml/auto), target_format (可选)
+   适用场景: "@data.json 转换为CSV"、"验证JSON格式"、"美化JSON"
+   注意: 需要用户使用 @ 引用文件
+
+6. environment_diagnostic - 环境诊断
+   参数: 无
+   适用场景: "检查开发环境"、"诊断环境"、"环境检测"
+
+7. none - 不需要工具（普通问答）
 
 用户输入: {user_input}
 
@@ -169,6 +178,8 @@ def simple_tool_calling_node(state: AgentState, enable_streaming: bool = True) -
 - 将相对日期（今天、明天等）转换为具体日期
 - 如果用户提到"commit"、"提交"、"git"相关，优先选择 generate_commit
 - 如果用户提到"code review"、"代码审查"、"检查代码"、"review"，优先选择 code_review
+- 如果用户使用 @ 引用了文件并要求"转换"、"验证"、"美化"，选择 data_conversion
+- 如果用户要求"检查环境"、"诊断环境"、"环境检测"，选择 environment_diagnostic
 - 如果无法判断，返回 {{"tool": "none", "args": {{}}}}
 """
 
@@ -216,6 +227,23 @@ def simple_tool_calling_node(state: AgentState, enable_streaming: bool = True) -
             return {
                 "intent": "code_review",
                 "response": result_text
+            }
+
+        elif tool_name == "data_conversion":
+            # 数据转换需要传递到专门的节点处理
+            return {
+                "intent": "data_conversion",
+                "data_conversion_type": tool_args.get("operation", "convert"),
+                "source_format": tool_args.get("source_format", "auto"),
+                "target_format": tool_args.get("target_format", "json"),
+                "response": ""  # 由节点处理
+            }
+
+        elif tool_name == "environment_diagnostic":
+            # 环境诊断需要传递到专门的节点处理
+            return {
+                "intent": "environment_diagnostic",
+                "response": ""  # 由节点处理
             }
 
         else:

@@ -11,6 +11,9 @@
 - 🎯 **双 LLM 配置** - 通用模型处理对话，代码模型生成命令
 - 🚀 **创建并执行代码** - 一句话生成并运行代码
 - 📝 **Git 智能工具** - 自动生成 commit 消息、代码审查（Code Review）
+- 📊 **数据转换工具** - JSON/CSV/YAML/XML 格式互转、验证、美化
+- 🔍 **环境诊断** - 自动检测开发环境配置和依赖问题
+- 📋 **待办事项管理** - 智能识别并管理日程安排和任务提醒
 
 ---
 
@@ -130,6 +133,22 @@ ai-agent "查看最近5次提交记录"
 # Git智能功能
 ai-agent "生成commit消息"  # 智能分析代码变更并生成规范的commit消息
 ai-agent "对当前代码进行code review"  # 智能代码审查，按严重性分级报告问题
+
+# 数据转换功能
+ai-agent "@data.json 转换为CSV"  # JSON转CSV格式
+ai-agent "@config.yaml 转换为JSON"  # YAML转JSON格式
+ai-agent "@data.json 验证格式"  # 验证JSON格式是否正确
+ai-agent "@config.json 美化格式"  # 格式化JSON使其更易读
+
+# 环境诊断功能
+ai-agent "检查开发环境"  # 诊断Python环境、依赖、工具等
+ai-agent "诊断环境配置"  # 检测环境问题并提供修复建议
+
+# 待办事项管理
+ai-agent "今天18点给陈龙打电话"  # 添加待办事项
+ai-agent "明天上午10点开会"  # 添加日程安排
+ai-agent "今天有什么要做的"  # 查询今日待办
+ai-agent "搜索陈龙相关的待办"  # 搜索特定关键词的待办
 ```
 
 ### 🚀 创建和执行代码
@@ -169,6 +188,8 @@ ai-agent "解释一下LangGraph的工作原理"
 | `history` / `历史` | 查看完整对话历史记录 |
 | `commands` / `命令` | 查看已执行的命令历史 |
 | `clear` / `清空` | 清空对话历史和上下文 |
+| `todos` / `待办` | 查看今日待办事项 |
+| `help` / `帮助` | 显示功能帮助信息 |
 | `exit` / `quit` / `退出` | 退出程序 |
 
 ---
@@ -355,12 +376,18 @@ cd /Users/zhangyanhua/Desktop/AI/tushare/quantification/example
 
 ## 📚 更多文档
 
-- **[CLI_README.md](CLI_README.md)** - 完整 CLI 使用文档
-- **[AT_FEATURE_DEMO.md](AT_FEATURE_DEMO.md)** - @ 文件引用功能演示
-- **[INTERACTIVE_FILE_SELECTOR_GUIDE.md](INTERACTIVE_FILE_SELECTOR_GUIDE.md)** - 文件选择器详细指南
-- **[MCP_INTEGRATION_COMPLETE.md](MCP_INTEGRATION_COMPLETE.md)** - MCP 集成完整说明
-- **[DUAL_LLM_CONFIG.md](DUAL_LLM_CONFIG.md)** - 双 LLM 配置指南
-- **[REFACTORING_SUMMARY.md](REFACTORING_SUMMARY.md)** - 代码重构说明
+### 🎯 功能指南
+- **[docs/new_features_guide.md](docs/new_features_guide.md)** - 数据转换和环境诊断功能详细指南
+- **[docs/AT_FEATURE_DEMO.md](docs/AT_FEATURE_DEMO.md)** - @ 文件引用功能演示
+- **[docs/TODO_FEATURE_GUIDE.md](docs/TODO_FEATURE_GUIDE.md)** - 待办事项管理功能指南
+- **[docs/CODE_REVIEW_FEATURE.md](docs/CODE_REVIEW_FEATURE.md)** - 代码审查功能说明
+
+### 🔧 技术文档
+- **[docs/CLI_README.md](docs/CLI_README.md)** - 完整 CLI 使用文档
+- **[docs/INTERACTIVE_FILE_SELECTOR_GUIDE.md](docs/INTERACTIVE_FILE_SELECTOR_GUIDE.md)** - 文件选择器详细指南
+- **[docs/MCP_INTEGRATION_COMPLETE.md](docs/MCP_INTEGRATION_COMPLETE.md)** - MCP 集成完整说明
+- **[docs/DUAL_LLM_CONFIG.md](docs/DUAL_LLM_CONFIG.md)** - 双 LLM 配置指南
+- **[docs/REFACTORING_SUMMARY.md](docs/REFACTORING_SUMMARY.md)** - 代码重构说明
 
 ---
 
@@ -411,7 +438,10 @@ ai-agent
 2. 💬 用自然语言描述你想做什么
 3. 📁 使用 `@` 快速引用文件
 4. 🔍 输入 `tools` 查看所有可用功能
-5. 💡 输入 `files` 了解文件引用技巧
+5. 💡 输入 `help` 查看功能帮助
+6. 📋 输入 `todos` 查看待办事项
+7. 🎯 尝试数据转换：`@data.json 转换为CSV`
+8. 🔍 尝试环境诊断：`检查开发环境`
 
 ---
 
