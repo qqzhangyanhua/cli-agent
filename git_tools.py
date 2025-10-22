@@ -202,6 +202,231 @@ class GitTools:
                 "commits": [],
             }
 
+    def get_current_branch(self) -> Dict:
+        """
+        获取当前分支名称
+        
+        Returns:
+            {
+                "success": bool,
+                "branch": str,
+                "error": str
+            }
+        """
+        if not self.check_git_repo():
+            return {"success": False, "error": "当前目录不是Git仓库", "branch": ""}
+        
+        try:
+            result = subprocess.run(
+                ["git", "branch", "--show-current"],
+                cwd=self.working_dir,
+                capture_output=True,
+                text=True,
+                encoding='utf-8',
+                errors='replace',
+                timeout=5,
+            )
+            
+            if result.returncode == 0:
+                branch = result.stdout.strip()
+                return {"success": True, "branch": branch, "error": ""}
+            else:
+                return {
+                    "success": False,
+                    "error": f"获取分支失败: {result.stderr}",
+                    "branch": ""
+                }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"获取分支失败: {str(e)}",
+                "branch": ""
+            }
+    
+    def git_pull(self) -> Dict:
+        """
+        执行 git pull
+        
+        Returns:
+            {
+                "success": bool,
+                "message": str,
+                "has_updates": bool,
+                "error": str
+            }
+        """
+        if not self.check_git_repo():
+            return {
+                "success": False,
+                "error": "当前目录不是Git仓库",
+                "message": "",
+                "has_updates": False
+            }
+        
+        try:
+            result = subprocess.run(
+                ["git", "pull"],
+                cwd=self.working_dir,
+                capture_output=True,
+                text=True,
+                encoding='utf-8',
+                errors='replace',
+                timeout=30,
+            )
+            
+            output = result.stdout.strip()
+            
+            if result.returncode == 0:
+                # 判断是否有更新
+                has_updates = "Already up to date" not in output and "已经是最新" not in output
+                
+                if has_updates:
+                    message = f"✅ 已拉取最新代码"
+                else:
+                    message = f"✅ 已是最新版本"
+                
+                return {
+                    "success": True,
+                    "message": message,
+                    "has_updates": has_updates,
+                    "output": output,
+                    "error": ""
+                }
+            else:
+                error = result.stderr.strip() if result.stderr else output
+                return {
+                    "success": False,
+                    "error": f"git pull 失败: {error}",
+                    "message": "",
+                    "has_updates": False
+                }
+        except subprocess.TimeoutExpired:
+            return {
+                "success": False,
+                "error": "git pull 超时（可能需要解决冲突或网络问题）",
+                "message": "",
+                "has_updates": False
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"git pull 失败: {str(e)}",
+                "message": "",
+                "has_updates": False
+            }
+    
+    def git_push(self, branch: Optional[str] = None) -> Dict:
+        """
+        执行 git push
+        
+        Args:
+            branch: 分支名称，如果为None则自动获取当前分支
+        
+        Returns:
+            {
+                "success": bool,
+                "message": str,
+                "branch": str,
+                "error": str
+            }
+        """
+        if not self.check_git_repo():
+            return {
+                "success": False,
+                "error": "当前目录不是Git仓库",
+                "message": "",
+                "branch": ""
+            }
+        
+        # 获取当前分支
+        if branch is None:
+            branch_info = self.get_current_branch()
+            if not branch_info["success"]:
+                return {
+                    "success": False,
+                    "error": f"无法获取当前分支: {branch_info['error']}",
+                    "message": "",
+                    "branch": ""
+                }
+            branch = branch_info["branch"]
+        
+        if not branch:
+            return {
+                "success": False,
+                "error": "无法确定当前分支",
+                "message": "",
+                "branch": ""
+            }
+        
+        try:
+            # 执行 git push origin <branch>
+            result = subprocess.run(
+                ["git", "push", "origin", branch],
+                cwd=self.working_dir,
+                capture_output=True,
+                text=True,
+                encoding='utf-8',
+                errors='replace',
+                timeout=30,
+            )
+            
+            output = result.stdout.strip() + result.stderr.strip()
+            
+            if result.returncode == 0:
+                message = f"✅ 已推送到远程分支 origin/{branch}"
+                return {
+                    "success": True,
+                    "message": message,
+                    "branch": branch,
+                    "output": output,
+                    "error": ""
+                }
+            else:
+                # 检查是否是因为没有远程分支
+                if "no upstream branch" in output or "has no upstream branch" in output:
+                    # 尝试设置上游分支并推送
+                    result2 = subprocess.run(
+                        ["git", "push", "--set-upstream", "origin", branch],
+                        cwd=self.working_dir,
+                        capture_output=True,
+                        text=True,
+                        encoding='utf-8',
+                        errors='replace',
+                        timeout=30,
+                    )
+                    
+                    if result2.returncode == 0:
+                        message = f"✅ 已创建并推送到远程分支 origin/{branch}"
+                        return {
+                            "success": True,
+                            "message": message,
+                            "branch": branch,
+                            "output": result2.stdout.strip(),
+                            "error": ""
+                        }
+                
+                error = result.stderr.strip() if result.stderr else output
+                return {
+                    "success": False,
+                    "error": f"git push 失败: {error}",
+                    "message": "",
+                    "branch": branch
+                }
+        except subprocess.TimeoutExpired:
+            return {
+                "success": False,
+                "error": "git push 超时（可能是网络问题）",
+                "message": "",
+                "branch": branch
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"git push 失败: {str(e)}",
+                "message": "",
+                "branch": branch
+            }
+
     def analyze_changes(self) -> Dict:
         """
         分析当前的变更，返回详细信息供LLM生成commit消息

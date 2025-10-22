@@ -63,7 +63,7 @@ MAX_COMMAND_HISTORY = 20
 class AgentState(TypedDict):
     """智能体状态"""
     user_input: str
-    intent: Literal["terminal_command", "multi_step_command", "mcp_tool_call", "git_commit", "auto_commit", "question", "add_todo", "query_todo", "data_conversion", "environment_diagnostic", "unknown"]
+    intent: Literal["terminal_command", "multi_step_command", "mcp_tool_call", "git_commit", "auto_commit", "full_git_workflow", "git_pull", "git_push", "question", "add_todo", "query_todo", "data_conversion", "environment_diagnostic", "unknown"]
     command: str
     commands: list
     command_output: str
@@ -103,3 +103,8 @@ class AgentState(TypedDict):
     git_file_stats: str
     git_commit_success: bool
     git_commit_hash: str
+    # Git pull/push 相关字段
+    git_pull_success: bool
+    git_pull_has_updates: bool
+    git_push_success: bool
+    git_push_branch: str

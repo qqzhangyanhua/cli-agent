@@ -14,7 +14,7 @@ from agent_llm import llm
 from todo_tools import todo_tools, add_todo_tool, query_todo_tool
 from git_commit_tools import generate_commit_tool
 from code_review_tools import code_review_tool
-from auto_commit_tools import auto_commit_tool
+from auto_commit_tools import auto_commit_tool, git_pull_tool, git_push_tool
 
 
 def create_tool_agent():
@@ -150,28 +150,40 @@ def simple_tool_calling_node(state: AgentState, enable_streaming: bool = True) -
    参数: 无（自动分析git diff）
    适用场景: "生成commit日志"、"生成commit消息"、"帮我写commit message"
 
-4. auto_commit - 自动执行完整的Git提交流程
+4. auto_commit - 自动执行 Git 提交流程
    参数: 无（自动执行 git add -> 生成消息 -> git commit）
-   适用场景: "提交代码"、"自动提交"、"一键提交"、"生成并提交commit"
+   适用场景: "提交代码"、"自动提交"、"一键提交"
 
-5. code_review - 代码审查
+5. full_git_workflow - 完整的 Git 工作流
+   参数: 无（自动执行 git pull -> add -> commit -> push）
+   适用场景: "同步并提交"、"提交并推送"、"一键同步"、"完整提交流程"
+
+6. git_pull - 拉取远程代码
+   参数: 无
+   适用场景: "拉取代码"、"git pull"、"更新代码"
+
+7. git_push - 推送到远程
+   参数: 无（自动识别当前分支）
+   适用场景: "推送代码"、"git push"、"上传代码"
+
+8. code_review - 代码审查
    参数: 无（自动分析git diff）
    适用场景: "代码审查"、"code review"、"检查代码"、"review代码"、"对当前代码进行code-review"
 
-6. data_conversion - 数据格式转换
+9. data_conversion - 数据格式转换
    参数: operation (convert/validate/beautify), source_format (json/yaml/csv/xml/auto), target_format (可选)
    适用场景: "@data.json 转换为CSV"、"验证JSON格式"、"美化JSON"
    注意: 需要用户使用 @ 引用文件
 
-7. environment_diagnostic - 环境诊断
-   参数: 无
-   适用场景: "检查开发环境"、"诊断环境"、"环境检测"
+10. environment_diagnostic - 环境诊断
+    参数: 无
+    适用场景: "检查开发环境"、"诊断环境"、"环境检测"
 
-8. get_stock_info - 获取股票实时信息
-   参数: stock_code (股票代码或名称)
-   适用场景: "获取XX股票价格"、"查询XX股价"、"XX股票最新价格"、"XX股票信息"
+11. get_stock_info - 获取股票实时信息
+    参数: stock_code (股票代码或名称)
+    适用场景: "获取XX股票价格"、"查询XX股价"、"XX股票最新价格"、"XX股票信息"
 
-9. terminal_command - 执行终端命令
+12. terminal_command - 执行终端命令
    参数: 无（自动生成命令）
    适用场景: 
    - "列出当前目录下的json文件"、"ls *.json"
@@ -182,7 +194,7 @@ def simple_tool_calling_node(state: AgentState, enable_streaming: bool = True) -
    - "查看文件内容"、"cat xxx"
    - 任何可以用终端命令完成的操作
 
-10. none - 不需要工具（普通问答）
+13. none - 不需要工具（普通问答）
 
 用户输入: {user_input}
 
@@ -196,8 +208,12 @@ def simple_tool_calling_node(state: AgentState, enable_streaming: bool = True) -
 
 注意：
 - 将相对日期（今天、明天等）转换为具体日期
-- 如果用户要求"提交代码"、"一键提交"、"自动提交"、"生成并提交"，选择 auto_commit（完整流程）
-- 如果用户只要求"生成commit日志"、"生成commit消息"（不提交），选择 generate_commit
+- Git 工作流选择规则：
+  * "同步并提交"、"提交并推送"、"一键同步"、"完整提交" → full_git_workflow（5步骤）
+  * "提交代码"、"自动提交"、"一键提交" → auto_commit（3步骤，不push）
+  * "拉取代码"、"git pull"、"更新代码" → git_pull（单独pull）
+  * "推送代码"、"git push"、"上传代码" → git_push（单独push）
+  * "生成commit日志"、"生成commit消息"（不提交） → generate_commit
 - 如果用户提到"code review"、"代码审查"、"检查代码"、"review"，优先选择 code_review
 - 如果用户使用 @ 引用了文件并要求"转换"、"验证"、"美化"，选择 data_conversion
 - 如果用户要求"检查环境"、"诊断环境"、"环境检测"，选择 environment_diagnostic
@@ -247,10 +263,31 @@ def simple_tool_calling_node(state: AgentState, enable_streaming: bool = True) -
             }
 
         elif tool_name == "auto_commit":
-            # 自动提交：走完整的 Git 工作流（git add -> 生成消息 -> commit）
+            # 自动提交：3步骤工作流（add -> 生成消息 -> commit）
             return {
                 "intent": "auto_commit",
                 "response": ""  # 由工作流节点处理
+            }
+
+        elif tool_name == "full_git_workflow":
+            # 完整 Git 工作流：5步骤（pull -> add -> 生成消息 -> commit -> push）
+            return {
+                "intent": "full_git_workflow",
+                "response": ""  # 由工作流节点处理
+            }
+
+        elif tool_name == "git_pull":
+            result_text = git_pull_tool.func("")
+            return {
+                "intent": "git_pull",
+                "response": result_text
+            }
+
+        elif tool_name == "git_push":
+            result_text = git_push_tool.func("")
+            return {
+                "intent": "git_push",
+                "response": result_text
             }
 
         elif tool_name == "code_review":

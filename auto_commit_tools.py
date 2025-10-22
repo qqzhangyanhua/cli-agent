@@ -1,6 +1,8 @@
 """
-Git 自动提交工具 - 完整的 Git 提交工作流
-实现：git add -> 生成commit消息 -> git commit
+Git 自动提交工具 - 完整的 Git 工作流
+实现：
+- auto_commit: git add -> 生成commit消息 -> git commit
+- full_git_workflow: git pull -> git add -> 生成commit消息 -> git commit -> git push
 """
 
 import subprocess
@@ -372,8 +374,126 @@ auto_commit_tool = Tool(
 )
 
 
+def git_pull_tool_func(user_request: str = "") -> str:
+    """
+    执行 git pull 拉取最新代码
+    
+    Returns:
+        执行结果
+    """
+    print(f"\n{'='*60}")
+    print(f"⬇️  执行 Git Pull")
+    print(f"{'='*60}\n")
+    
+    result = git_tools.git_pull()
+    
+    if result["success"]:
+        response = f"""
+✅ Git Pull 完成！
+
+{result['message']}
+"""
+        if result.get("has_updates"):
+            response += "\n📥 已更新到最新版本"
+        
+        return response
+    else:
+        return f"""
+❌ Git Pull 失败
+
+{result['error']}
+
+💡 请检查：
+  • 是否有网络连接
+  • 是否有未解决的冲突
+  • 可以手动执行: git pull
+"""
+
+
+def git_push_tool_func(user_request: str = "") -> str:
+    """
+    执行 git push 推送代码到远程仓库
+    
+    Returns:
+        执行结果
+    """
+    print(f"\n{'='*60}")
+    print(f"⬆️  执行 Git Push")
+    print(f"{'='*60}\n")
+    
+    # 获取当前分支
+    branch_info = git_tools.get_current_branch()
+    
+    if not branch_info["success"]:
+        return f"""
+❌ Git Push 失败
+
+{branch_info['error']}
+"""
+    
+    branch = branch_info["branch"]
+    print(f"[Git Push] 当前分支: {branch}")
+    
+    # 执行 push
+    result = git_tools.git_push(branch)
+    
+    if result["success"]:
+        return f"""
+✅ Git Push 完成！
+
+{result['message']}
+
+💡 代码已推送到远程仓库
+"""
+    else:
+        return f"""
+❌ Git Push 失败
+
+{result['error']}
+
+💡 请检查：
+  • 是否有网络连接
+  • 是否有推送权限
+  • 可以手动执行: git push origin {branch}
+"""
+
+
+# 创建 LangChain Tool
+git_pull_tool = Tool(
+    name="git_pull",
+    description="""执行 git pull 拉取最新代码。
+
+适用场景:
+- "拉取代码"
+- "git pull"
+- "更新代码"
+- "同步远程代码"
+
+不需要任何参数。
+""",
+    func=git_pull_tool_func
+)
+
+
+git_push_tool = Tool(
+    name="git_push",
+    description="""执行 git push 推送代码到远程仓库。
+
+适用场景:
+- "推送代码"
+- "git push"
+- "上传代码"
+- "推送到远程"
+
+自动识别当前分支并推送到对应的远程分支（origin/<branch>）。
+不需要任何参数。
+""",
+    func=git_push_tool_func
+)
+
+
 # 导出工具
-auto_commit_tools = [auto_commit_tool]
+auto_commit_tools = [auto_commit_tool, git_pull_tool, git_push_tool]
 
 
 # ============================================

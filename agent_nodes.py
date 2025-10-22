@@ -17,7 +17,7 @@ from file_reference_parser import parse_file_references, file_parser
 from todo_manager import todo_manager
 from data_converter_tools import data_converter_tools
 from env_diagnostic_tools import env_diagnostic_tools
-from auto_commit_tools import git_add_all, git_commit_with_message
+from auto_commit_tools import git_add_all, git_commit_with_message, git_pull_tool_func, git_push_tool_func
 from git_commit_tools import generate_commit_message_tool_func
 
 
@@ -1427,5 +1427,157 @@ def git_commit_executor_node(state: AgentState) -> dict:
         return {
             "response": response,
             "git_commit_success": False,
+            "error": str(e)
+        }
+
+
+# ============================================
+# Git Pull/Push 节点
+# ============================================
+
+def git_pull_node(state: AgentState) -> dict:
+    """
+    Git 工作流节点: 执行 git pull
+    拉取远程最新代码
+    """
+    print(f"\n⬇️  [Git Pull] 拉取最新代码...")
+    
+    try:
+        result = git_tools.git_pull()
+        
+        if result["success"]:
+            has_updates = result.get("has_updates", False)
+            message = result["message"]
+            print(f"[Git Pull] {message}")
+            
+            return {
+                "git_pull_success": True,
+                "git_pull_has_updates": has_updates,
+                "response": message
+            }
+        else:
+            error_msg = result.get("error", "git pull 失败")
+            print(f"[Git Pull] ❌ {error_msg}")
+            return {
+                "git_pull_success": False,
+                "response": f"❌ Git 工作流终止\n\n⬇️  Pull: ❌ {error_msg}",
+                "error": error_msg
+            }
+    
+    except Exception as e:
+        print(f"[Git Pull] ❌ 异常: {e}")
+        return {
+            "git_pull_success": False,
+            "response": f"❌ Git pull 执行失败: {str(e)}",
+            "error": str(e)
+        }
+
+
+def git_push_node(state: AgentState) -> dict:
+    """
+    Git 工作流节点: 执行 git push
+    推送代码到远程仓库（自动识别分支）
+    """
+    print(f"\n⬆️  [Git Push] 推送代码到远程...")
+    
+    try:
+        # 获取当前分支
+        branch_info = git_tools.get_current_branch()
+        
+        if not branch_info["success"]:
+            error_msg = branch_info.get("error", "无法获取当前分支")
+            print(f"[Git Push] ❌ {error_msg}")
+            
+            commit_hash = state.get("git_commit_hash", "")
+            response = f"""❌ Git 工作流失败
+
+⬇️  Pull: ✅ 完成
+📦 Add: ✅ 完成
+💡 Commit: ✅ 完成 (commit: {commit_hash[:7] if commit_hash else 'N/A'})
+⬆️  Push: ❌ {error_msg}
+
+💡 可以手动推送: git push
+"""
+            return {
+                "git_push_success": False,
+                "response": response,
+                "error": error_msg
+            }
+        
+        branch = branch_info["branch"]
+        print(f"[Git Push] 当前分支: {branch}")
+        
+        # 执行 push
+        result = git_tools.git_push(branch)
+        
+        if result["success"]:
+            print(f"[Git Push] ✅ {result['message']}")
+            
+            # 生成最终响应
+            files_count = state.get("git_files_count", 0)
+            file_stats = state.get("git_file_stats", "")
+            commit_message = state.get("git_commit_message", "")
+            commit_hash = state.get("git_commit_hash", "")
+            pull_has_updates = state.get("git_pull_has_updates", False)
+            
+            response = f"""
+🎉 Git 完整工作流完成！
+
+{'─'*60}
+⬇️  步骤 1: ✅ Pull 完成 {'(已更新到最新)' if pull_has_updates else '(已是最新)'}
+
+📦 步骤 2: ✅ 已暂存 {files_count} 个文件 ({file_stats})
+
+💡 步骤 3: ✅ 生成 commit 消息
+  {commit_message}
+
+✍️  步骤 4: ✅ 代码已提交 {f'(commit: {commit_hash[:7]})' if commit_hash else ''}
+
+⬆️  步骤 5: ✅ 已推送到 origin/{branch}
+{'─'*60}
+
+💡 提示: 代码已同步到远程仓库
+"""
+            
+            return {
+                "response": response,
+                "git_push_success": True,
+                "git_push_branch": branch
+            }
+        else:
+            error_msg = result.get("error", "git push 失败")
+            print(f"[Git Push] ❌ {error_msg}")
+            
+            commit_hash = state.get("git_commit_hash", "")
+            response = f"""❌ Git 工作流失败
+
+⬇️  Pull: ✅ 完成
+📦 Add: ✅ 完成
+💡 Commit: ✅ 完成 (commit: {commit_hash[:7] if commit_hash else 'N/A'})
+⬆️  Push: ❌ {error_msg}
+
+💡 可以手动推送: git push origin {branch}
+"""
+            
+            return {
+                "response": response,
+                "git_push_success": False,
+                "git_push_branch": branch,
+                "error": error_msg
+            }
+    
+    except Exception as e:
+        print(f"[Git Push] ❌ 异常: {e}")
+        
+        response = f"""❌ Git Push 执行失败
+
+错误: {str(e)}
+
+💡 可以手动推送: git push
+"""
+        
+        return {
+            "response": response,
+            "git_push_success": False,
             "error": str(e)
         }
