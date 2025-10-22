@@ -677,6 +677,14 @@ def format_mcp_success_response(tool_name: str, result: dict) -> str:
         response += f"创建时间: {result.get('created', '')}\n"
         response += f"类型: {'文件' if result.get('is_file') else '目录'}"
 
+    elif tool_name == "get_stock_info":
+        # 股票信息专门格式化
+        stock_info = result.get("result", "")
+        if stock_info:
+            response = f"📈 股票查询结果\n\n{stock_info}"
+        else:
+            response += f"结果:\n{json.dumps(result, ensure_ascii=False, indent=2)}"
+
     elif tool_name.startswith("desktop_"):
         response += f"结果:\n{json.dumps(result.get('result', {}), ensure_ascii=False, indent=2)}"
 

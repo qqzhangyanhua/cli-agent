@@ -162,7 +162,11 @@ def simple_tool_calling_node(state: AgentState, enable_streaming: bool = True) -
    参数: 无
    适用场景: "检查开发环境"、"诊断环境"、"环境检测"
 
-7. terminal_command - 执行终端命令
+7. get_stock_info - 获取股票实时信息
+   参数: stock_code (股票代码或名称)
+   适用场景: "获取XX股票价格"、"查询XX股价"、"XX股票最新价格"、"XX股票信息"
+
+8. terminal_command - 执行终端命令
    参数: 无（自动生成命令）
    适用场景: 
    - "列出当前目录下的json文件"、"ls *.json"
@@ -173,7 +177,7 @@ def simple_tool_calling_node(state: AgentState, enable_streaming: bool = True) -
    - "查看文件内容"、"cat xxx"
    - 任何可以用终端命令完成的操作
 
-8. none - 不需要工具（普通问答）
+9. none - 不需要工具（普通问答）
 
 用户输入: {user_input}
 
@@ -191,6 +195,7 @@ def simple_tool_calling_node(state: AgentState, enable_streaming: bool = True) -
 - 如果用户提到"code review"、"代码审查"、"检查代码"、"review"，优先选择 code_review
 - 如果用户使用 @ 引用了文件并要求"转换"、"验证"、"美化"，选择 data_conversion
 - 如果用户要求"检查环境"、"诊断环境"、"环境检测"，选择 environment_diagnostic
+- 如果用户要求查询股票信息（"获取XX价格"、"XX股价"、"XX股票"、"股票信息"），选择 get_stock_info
 - 如果用户要求执行系统操作（列出文件、查看版本、创建删除文件等），选择 terminal_command
 - 终端命令的关键词：列出、查看、显示、创建、删除、运行、执行、ls、cat、mkdir、rm、pwd、python、node等
 - 如果无法判断，返回 {{"tool": "none", "args": {{}}}}
@@ -257,6 +262,15 @@ def simple_tool_calling_node(state: AgentState, enable_streaming: bool = True) -
             return {
                 "intent": "environment_diagnostic",
                 "response": ""  # 由节点处理
+            }
+
+        elif tool_name == "get_stock_info":
+            # 股票查询需要传递到MCP工具处理
+            return {
+                "intent": "mcp_tool_call",
+                "mcp_tool": "get_stock_info",
+                "mcp_params": tool_args,
+                "response": ""  # 由MCP节点处理
             }
 
         elif tool_name == "terminal_command":

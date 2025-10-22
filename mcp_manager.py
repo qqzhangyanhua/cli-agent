@@ -113,25 +113,79 @@ class MCPManager:
             
             print(f"[MCP调用] 服务器: {server_name}, 工具: {tool_name}")
             
-            # 执行命令
-            result = subprocess.run(
+            # 使用 Popen 进行交互式通信
+            process = subprocess.Popen(
                 command,
-                input=json.dumps(request),
-                capture_output=True,
-                text=True,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
+            )
+            
+            # 发送请求并获取响应
+            stdout, stderr = process.communicate(
+                input=json.dumps(request) + '\n',
                 timeout=30
             )
             
+            # 创建一个类似 subprocess.run 结果的对象
+            class Result:
+                def __init__(self, returncode, stdout, stderr):
+                    self.returncode = returncode
+                    self.stdout = stdout
+                    self.stderr = stderr
+            
+            result = Result(process.returncode, stdout, stderr)
+            
             if result.returncode == 0:
                 try:
-                    response = json.loads(result.stdout)
+                    # 尝试解析标准输出中的 JSON
+                    stdout_lines = result.stdout.strip().split('\n')
+                    json_response = None
+                    
+                    # 查找 JSON 响应行（通常是最后一行或包含 "jsonrpc" 的行）
+                    for line in reversed(stdout_lines):
+                        line = line.strip()
+                        if line and (line.startswith('{') or line.startswith('[')):
+                            try:
+                                json_response = json.loads(line)
+                                break
+                            except json.JSONDecodeError:
+                                continue
+                    
+                    if not json_response:
+                        # 如果没找到 JSON，尝试解析整个输出
+                        json_response = json.loads(result.stdout)
+                    
                     print(f"[MCP调用] ✅ 成功")
+                    
+                    # 解析 MCP 标准格式的结果
+                    result_data = json_response.get("result", {})
+                    if isinstance(result_data, dict) and "content" in result_data:
+                        # 提取 content 数组中的文本内容
+                        content_items = result_data.get("content", [])
+                        if content_items and isinstance(content_items, list):
+                            # 合并所有文本内容
+                            text_content = ""
+                            for item in content_items:
+                                if isinstance(item, dict) and item.get("type") == "text":
+                                    text_content += item.get("text", "")
+                            
+                            return {
+                                "success": True,
+                                "result": text_content.strip(),
+                                "raw_response": json_response
+                            }
+                    
+                    # 如果不是标准格式，返回原始结果
                     return {
                         "success": True,
-                        "result": response.get("result", {}),
-                        "raw_response": response
+                        "result": result_data,
+                        "raw_response": json_response
                     }
-                except json.JSONDecodeError:
+                except json.JSONDecodeError as e:
+                    print(f"[MCP调用] JSON解析失败: {e}")
+                    print(f"[MCP调用] 原始输出: {result.stdout}")
                     return {
                         "success": True,
                         "result": result.stdout,
@@ -185,6 +239,10 @@ class MCPManager:
             action = tool_name.replace("desktop_", "")
             return self.call_mcp_server("desktop-commander", action, kwargs)
         
+        # mcp-stock工具
+        elif tool_name == "get_stock_info":
+            return self.call_mcp_server("mcp-stock", "get-stock-info", kwargs)
+        
         else:
             return {
                 "success": False,
@@ -230,6 +288,17 @@ class MCPManager:
                     "description": "写入剪贴板内容",
                     "type": "desktop-commander",
                     "params": ["text"]
+                }
+            ])
+        
+        # mcp-stock工具（如果已配置）
+        if "mcp-stock" in self.servers:
+            tools_list.extend([
+                {
+                    "name": "get_stock_info",
+                    "description": "获取股票实时信息",
+                    "type": "mcp-stock",
+                    "params": ["stock_code"]
                 }
             ])
         
