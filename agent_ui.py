@@ -32,14 +32,16 @@ def print_header():
     print("\n🔧 双LLM配置:")
     print(f"  • 通用模型: {LLM_CONFIG['model']} (意图分析、问答)")
     print(f"  • 代码模型: {LLM_CONFIG2['model']} (命令生成、代码编写)")
-    print("\n💡 特殊命令:")
-    print("  • 'exit' 或 'quit' - 退出程序")
-    print("  • 'clear' - 清空对话历史")
-    print("  • 'history' - 查看对话历史")
-    print("  • 'commands' - 查看命令执行历史")
-    print("  • 'models' - 查看当前模型配置")
-    print("  • 'tools' - 查看MCP工具列表")
-    print("  • 'files' - 查看 @ 文件引用功能说明")
+    print("\n💡 特殊命令 (以 / 开头):")
+    print("  • /exit 或 /quit  - 退出程序")
+    print("  • /clear          - 清空对话历史")
+    print("  • /history        - 查看对话历史")
+    print("  • /commands       - 查看命令执行历史")
+    print("  • /models         - 查看当前模型配置")
+    print("  • /tools          - 查看MCP工具列表")
+    print("  • /files          - 查看 @ 文件引用功能说明")
+    print("  • /todos          - 查看今日待办事项")
+    print("  • /help           - 显示详细帮助")
     print("\n" + "=" * 80 + "\n")
 
 
@@ -55,18 +57,18 @@ def handle_special_commands(user_input: str) -> bool:
     user_input_lower = user_input.lower().strip()
     
     # 退出命令
-    if user_input_lower in ['exit', 'quit', '退出']:
+    if user_input_lower in ['/exit', '/quit', '/退出']:
         print("\n👋 再见！感谢使用AI智能终端助手！\n")
         return True
     
     # 清空历史
-    if user_input_lower in ['clear', '清空']:
+    if user_input_lower in ['/clear', '/清空']:
         memory.clear()
         print("\n✅ 对话历史已清空\n")
         return False
     
     # 查看对话历史
-    if user_input_lower in ['history', '历史']:
+    if user_input_lower in ['/history', '/历史']:
         if not memory.history:
             print("\n暂无对话历史\n")
         else:
@@ -81,7 +83,7 @@ def handle_special_commands(user_input: str) -> bool:
         return False
     
     # 查看命令历史
-    if user_input_lower in ['commands', '命令']:
+    if user_input_lower in ['/commands', '/命令']:
         if not memory.command_history:
             print("\n暂无命令执行历史\n")
         else:
@@ -94,7 +96,7 @@ def handle_special_commands(user_input: str) -> bool:
         return False
     
     # 查看模型配置
-    if user_input_lower in ['models', '模型']:
+    if user_input_lower in ['/models', '/模型']:
         print("\n🔧 当前模型配置:")
         print("─" * 80)
         print("\n📌 通用模型 (LLM_CONFIG):")
@@ -117,7 +119,7 @@ def handle_special_commands(user_input: str) -> bool:
         return False
     
     # 查看MCP工具列表
-    if user_input_lower in ['tools', '工具']:
+    if user_input_lower in ['/tools', '/工具']:
         print("\n🛠️ 可用的MCP工具:")
         print("─" * 80)
         tools = mcp_manager.list_available_tools()
@@ -143,7 +145,7 @@ def handle_special_commands(user_input: str) -> bool:
         return False
     
     # 查看文件引用功能说明
-    if user_input_lower in ['files', '文件', '@']:
+    if user_input_lower in ['/files', '/文件', '/@']:
         print("\n📁 @ 文件引用功能说明:")
         print("─" * 80)
         print("\n🎯 基本用法:")
@@ -191,6 +193,36 @@ def handle_special_commands(user_input: str) -> bool:
         print("  👤 用户: 读取 @README.md")
         print("  🤖 助手: [自动读取README.md内容并分析]")
         print("─" * 80 + "\n")
+        return False
+    
+    # 查看帮助（添加新的/help命令）
+    if user_input_lower in ['/help', '/帮助']:
+        print("\n💡 特殊命令帮助:")
+        print("─" * 80)
+        print("\n🔧 可用命令:")
+        print("  /exit, /quit      - 退出程序")
+        print("  /clear            - 清空对话历史")
+        print("  /history          - 查看对话历史")
+        print("  /commands         - 查看命令执行历史")
+        print("  /models           - 查看当前模型配置")
+        print("  /tools            - 查看MCP工具列表")
+        print("  /files            - 查看 @ 文件引用功能说明")
+        print("  /todos            - 查看今日待办事项")
+        print("  /help             - 显示此帮助信息")
+        print("\n💡 文件引用:")
+        print("  @ 或 @filename    - 引用文件并提问")
+        print("\n🎯 使用提示:")
+        print("  • 所有特殊命令以 / 开头")
+        print("  • 可以使用中文或英文命令")
+        print("  • 输入 @ 启动交互式文件选择器")
+        print("─" * 80 + "\n")
+        return False
+    
+    # 查看待办事项
+    if user_input_lower in ['/todos', '/待办']:
+        # 这里简单显示提示，实际待办查询会由工作流处理
+        print("\n📋 提示: 请使用自然语言查询待办事项")
+        print("例如: '今天有什么待办' 或 '查看所有待办'\n")
         return False
     
     return None

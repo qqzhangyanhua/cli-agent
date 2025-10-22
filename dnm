@@ -147,15 +147,15 @@ def parse_arguments():
     dnm "今天18点给陈龙打电话"        # 添加待办事项
     dnm "今天有什么要做的"            # 查询待办事项
 
-🎨 交互模式特殊命令:
-    tools/工具    - 查看MCP工具列表
-    models/模型   - 查看双LLM配置
-    files/@       - 文件引用功能说明
-    todos/待办    - 查看今日待办
-    help/帮助     - 显示功能帮助
-    history/历史  - 查看对话历史
-    clear/清空    - 清空对话历史
-    exit/quit     - 退出程序"""
+🎨 交互模式特殊命令 (以 / 开头):
+    /tools        - 查看MCP工具列表
+    /models       - 查看双LLM配置
+    /files        - 文件引用功能说明
+    /todos        - 查看今日待办
+    /help         - 显示功能帮助
+    /history      - 查看对话历史
+    /clear        - 清空对话历史
+    /exit, /quit  - 退出程序"""
 
     parser = argparse.ArgumentParser(
         prog="dnm",
