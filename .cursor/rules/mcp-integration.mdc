@@ -1,0 +1,138 @@
+---
+description: MCP (Model Context Protocol) 集成指南
+---
+
+# MCP 集成开发指南
+
+MCP 允许项目集成外部工具服务器，扩展功能。
+
+## 核心文件
+- [mcp_manager.py](mdc:mcp_manager.py) - MCP 管理器，负责工具调用
+- [mcp_config.json](mdc:mcp_config.json) - MCP 服务器配置
+- [mcp_filesystem.py](mdc:mcp_filesystem.py) - 文件系统工具封装
+
+## MCP 工作流
+
+### 1. 配置 MCP 服务器
+在 [mcp_config.json](mdc:mcp_config.json) 中添加：
+
+```json
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/path"]
+    },
+    "desktop-commander": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-desktop-commander"]
+    }
+  }
+}
+```
+
+### 2. 工作流集成
+在 [agent_workflow.py](mdc:agent_workflow.py) 中：
+
+```python
+# 意图分析后，如果需要 MCP 工具
+def mcp_tool_planner(state: AgentState) -> AgentState:
+    """规划需要哪些 MCP 工具"""
+    # 使用 LLM_CONFIG2 分析需要哪个工具
+    
+def mcp_tool_executor(state: AgentState) -> AgentState:
+    """执行 MCP 工具调用"""
+    result = mcp_manager.call_tool(
+        tool_name=state["mcp_tool"],
+        params=state["mcp_params"]
+    )
+```
+
+### 3. 工具调用
+```python
+from mcp_manager import mcp_manager
+
+# 列出可用工具
+tools = mcp_manager.list_available_tools()
+
+# 调用工具
+result = mcp_manager.call_tool(
+    tool_name="read_file",
+    params={"path": "/path/to/file"}
+)
+```
+
+## 可用的 MCP 工具
+
+### 文件系统工具
+- `read_file` - 读取文件内容
+- `write_file` - 写入文件
+- `list_directory` - 列出目录
+- `create_directory` - 创建目录
+- `delete_file` - 删除文件
+- `move_file` - 移动文件
+- `search_files` - 搜索文件
+
+### 桌面控制工具
+- `execute_command` - 执行系统命令
+- `take_screenshot` - 截图
+- `get_clipboard` - 获取剪贴板
+- `set_clipboard` - 设置剪贴板
+
+## 工具选择策略
+
+### 何时使用 MCP 工具
+- 文件操作需求（读取、写入、搜索）
+- 系统命令执行
+- 桌面控制操作
+
+### 何时使用传统方法
+- 简单的 Python 操作
+- 不需要权限的操作
+- 性能敏感的操作
+
+## 错误处理
+```python
+try:
+    result = mcp_manager.call_tool(tool_name, params)
+    if result.get("error"):
+        state["error"] = f"MCP 工具调用失败: {result['error']}"
+except Exception as e:
+    state["error"] = f"MCP 调用异常: {str(e)}"
+```
+
+## 添加新 MCP 服务器
+
+### 步骤
+1. 在 [mcp_config.json](mdc:mcp_config.json) 中添加服务器配置
+2. 在 [mcp_manager.py](mdc:mcp_manager.py) 中实现连接逻辑
+3. 在工作流中添加相应的节点
+4. 更新提示词让 LLM 知道新工具
+
+### 示例：添加 Git 工具
+```json
+{
+  "mcpServers": {
+    "git": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-git", "."]
+    }
+  }
+}
+```
+
+## 性能优化
+- 缓存工具列表，避免重复查询
+- 批量操作时使用批量 API（如果支持）
+- 异步调用（如果 MCP 服务器支持）
+
+## 调试技巧
+```python
+# 启用详细日志
+mcp_manager.verbose = True
+
+# 列出所有工具及其参数
+for tool in mcp_manager.list_available_tools():
+    print(f"Tool: {tool['name']}")
+    print(f"Params: {tool['params']}")
+```

@@ -1,0 +1,40 @@
+# AI Agent CLI - Cursor 规则
+
+本项目使用结构化的 Cursor 规则来提升 AI 辅助开发体验。
+
+## 规则位置
+所有规则文件位于 `.cursor/rules/` 目录。
+
+## 规则列表
+
+### 自动应用
+- **project-overview.mdc** - 项目概览（始终应用）
+
+### 文件类型自动应用  
+- **python-style.mdc** - Python 代码规范 (*.py)
+- **testing.mdc** - 测试规范 (test_*.py)
+- **documentation.mdc** - 文档规范 (*.md)
+
+### 按需查询
+- **workflow-development.mdc** - LangGraph 工作流开发
+- **file-reference-feature.mdc** - @ 文件引用功能
+- **mcp-integration.mdc** - MCP 集成指南
+
+## 查看详情
+查看 `.cursor/rules/README.md` 获取完整的规则说明和使用指南。
+
+## 核心原则
+- 使用中文描述，技术术语保持英文
+- 使用类型注解和文档字符串
+- 遵循 PEP 8 规范
+- 双 LLM 架构：通用模型处理对话，代码模型生成命令
+- 使用 emoji 增强用户体验
+
+## 快速参考
+- 入口文件: [ai-agent](ai-agent)
+- 配置文件: [agent_config.py](agent_config.py)
+- 工作流: [agent_workflow.py](agent_workflow.py)
+- 节点实现: [agent_nodes.py](agent_nodes.py)
+- 主文档: [README.md](README.md)
+
+

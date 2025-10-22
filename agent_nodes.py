@@ -4,6 +4,8 @@
 """
 
 import json
+import re
+from datetime import datetime, timedelta
 from langchain_core.messages import HumanMessage
 from agent_config import AgentState, LLM_CONFIG, LLM_CONFIG2
 from agent_memory import memory
@@ -12,6 +14,7 @@ from agent_llm import llm, llm_code
 from mcp_manager import mcp_manager
 from git_tools import git_tools
 from file_reference_parser import parse_file_references, file_parser
+from todo_manager import todo_manager
 
 
 # ============================================
@@ -114,6 +117,41 @@ def intent_analyzer(state: AgentState) -> dict:
     user_input = state["user_input"]
     context = memory.get_context_string()
     
+    # 先进行基于规则的快速判断（提高准确率）
+    user_input_lower = user_input.lower()
+
+    # 查询待办的关键词
+    query_keywords = [
+        '有什么', '要做什么', '做什么', '待办', '任务', '安排',
+        '查看', '看看', '有哪些', '什么事', '日程'
+    ]
+
+    # 时间相关词汇（用于判断是否涉及时间）
+    time_keywords = ['今天', '明天', '后天', '周一', '周二', '周三', '周四', '周五', '周六', '周日', '下周',
+                     '点', '时', '上午', '下午', '早上', '晚上', '中午']
+
+    # 规则1: 如果包含查询关键词 + 时间词，很可能是查询待办
+    has_query_keyword = any(kw in user_input_lower for kw in query_keywords)
+    has_time_word = any(kw in user_input_lower for kw in time_keywords)
+
+    if has_query_keyword and has_time_word:
+        print(f"\n[意图分析] {user_input[:50]}...")
+        print(f"           规则匹配: query_todo")
+        print(f"           意图: query_todo")
+        return {"intent": "query_todo"}
+
+    # 规则2: 如果包含时间词但没有疑问词，且不是疑问句，很可能是添加待办
+    # 例如："明天开会"、"今天18点给陈龙打电话"
+    if has_time_word and not has_query_keyword:
+        # 排除疑问句（以问号结尾）
+        if not user_input.strip().endswith('？') and not user_input.strip().endswith('?'):
+            print(f"\n[意图分析] {user_input[:50]}...")
+            print(f"           规则匹配: add_todo")
+            print(f"           意图: add_todo")
+            return {"intent": "add_todo"}
+
+    
+    # 如果规则没有匹配，使用 LLM 分析
     # 构建文件引用上下文
     file_context = ""
     if state.get("referenced_files"):
@@ -131,22 +169,49 @@ def intent_analyzer(state: AgentState) -> dict:
 
 当前用户输入: {user_input}
 
-判断规则:
-- 如果用户想生成Git commit消息、生成commit日志 -> git_commit
-- 如果用户想读取文件、写入文件、列出目录、搜索文件、获取文件信息 -> mcp_tool_call
-- 如果用户想截图、操作剪贴板、执行桌面命令 -> mcp_tool_call
-- 如果用户想执行系统命令、运行程序 -> terminal_command
-- 如果用户需要创建代码文件并执行、或者需要多个步骤完成任务 -> multi_step_command
-- 如果用户在问问题、寻求解释、需要建议、或者引用之前的对话 -> question
+判断规则（按优先级排序，从上到下匹配）:
 
-只返回一个词: 'git_commit', 'mcp_tool_call', 'terminal_command', 'multi_step_command' 或 'question'
+1. 添加待办事项 (add_todo) - 用户想记录、添加、设置一个待办或提醒
+   关键特征：包含时间点 + 要做的事情
+   示例：
+   - "今天18点给陈龙打电话"
+   - "明天上午10点开会" 
+   - "周五下午3点交报告"
+   - "提醒我明天买菜"
+   - "记录：后天见客户"
+   
+2. 查询待办事项 (query_todo) - 用户想查看、询问待办事项
+   关键特征：询问"有什么"、"要做什么"、"待办"、"任务"、"安排"
+   示例：
+   - "今天有什么要做的"
+   - "明天的待办"
+   - "这周有什么任务"
+   - "我今天要做什么"
+   - "查看我的待办"
+
+3. Git commit (git_commit) - 生成Git commit消息
+
+4. MCP工具 (mcp_tool_call) - 文件操作、截图、剪贴板等
+
+5. 终端命令 (terminal_command) - 执行系统命令
+
+6. 多步骤命令 (multi_step_command) - 需要多步骤的任务
+
+7. 问题 (question) - 其他问答、解释、建议等
+
+**重要**：
+- 如果输入包含"今天/明天/周X + 时间 + 动作"的模式，优先判断为 add_todo
+- 如果输入询问"有什么要做/待办/任务/安排"，优先判断为 query_todo
+- 只有在明确不属于待办相关时，才判断为 question
+
+只返回一个词: 'add_todo', 'query_todo', 'git_commit', 'mcp_tool_call', 'terminal_command', 'multi_step_command' 或 'question'
 
 意图:"""
 
     result = llm.invoke([HumanMessage(content=prompt)])
     intent = result.content.strip().lower()
 
-    if intent not in ["git_commit", "mcp_tool_call", "terminal_command", "multi_step_command", "question"]:
+    if intent not in ["add_todo", "query_todo", "git_commit", "mcp_tool_call", "terminal_command", "multi_step_command", "question"]:
         intent = "question"
 
     print(f"\n[意图分析] {user_input[:50]}...")
@@ -295,7 +360,7 @@ def mcp_tool_planner(state: AgentState) -> dict:
 
 
 def question_answerer(state: AgentState) -> dict:
-    """回答用户问题"""
+    """回答用户问题（流式输出）"""
     user_input = state["user_input"]
     context = memory.get_context_string()
     recent_commands = memory.get_recent_commands()
@@ -312,13 +377,31 @@ def question_answerer(state: AgentState) -> dict:
 
 回答:"""
 
-    result = llm.invoke([HumanMessage(content=prompt)])
-    response = result.content
-
-    print(f"[问题回答] 生成回答")
+    print(f"[问题回答] 生成回答（流式）")
     print(f"           使用模型: {LLM_CONFIG['model']}")
+    print()  # 空行
+    print("─" * 80)
+    print("🤖 助手: ", end="", flush=True)
 
-    return {"response": response}
+    # 使用流式输出
+    try:
+        response = ""
+        for chunk in llm.stream([HumanMessage(content=prompt)]):
+            if hasattr(chunk, 'content'):
+                content = chunk.content
+                response += content
+                print(content, end="", flush=True)
+
+        print()  # 换行
+        print("─" * 80)
+
+        return {"response": response}
+
+    except Exception as e:
+        error_msg = f"❌ 生成回答失败: {str(e)}"
+        print(error_msg)
+        print("─" * 80)
+        return {"response": error_msg, "error": str(e)}
 
 
 # ============================================
@@ -616,3 +699,235 @@ def git_commit_generator(state: AgentState) -> dict:
         response += f"  git commit -m \"{commit_message.split(chr(10))[0]}\"\n"
     
     return {"response": response}
+
+
+# ============================================
+# 待办事项处理节点
+# ============================================
+
+def todo_processor(state: AgentState) -> dict:
+    """处理待办事项的添加和查询"""
+    user_input = state["user_input"]
+    intent = state["intent"]
+    
+    print(f"\n[待办处理] 处理待办事项...")
+    print(f"           意图: {intent}")
+    
+    if intent == "add_todo":
+        # 使用LLM解析待办信息
+        prompt = f"""从用户输入中提取待办事项信息，返回JSON格式。
+
+用户输入: {user_input}
+
+需要提取:
+1. date: 日期（格式：YYYY-MM-DD）。如果用户说"今天"，使用今天日期；"明天"使用明天日期；具体日期按实际解析
+2. time: 时间（格式：HH:MM），如果没有明确时间，返回空字符串
+3. content: 待办内容（简洁描述，去掉日期时间信息）
+
+今天是: {datetime.now().strftime("%Y-%m-%d")}
+
+示例:
+输入: "今天18点我要给陈龙打电话"
+输出: {{"date": "2024-01-22", "time": "18:00", "content": "给陈龙打电话"}}
+
+输入: "明天上午10点开会"
+输出: {{"date": "2024-01-23", "time": "10:00", "content": "开会"}}
+
+输入: "提醒我周五下午3点半交报告"
+输出: {{"date": "2024-01-26", "time": "15:30", "content": "交报告"}}
+
+只返回JSON，不要其他内容:"""
+
+        result = llm.invoke([HumanMessage(content=prompt)])
+        response_text = result.content.strip()
+        
+        # 提取JSON
+        if "```json" in response_text:
+            response_text = response_text.split("```json")[1].split("```")[0].strip()
+        elif "```" in response_text:
+            response_text = response_text.split("```")[1].split("```")[0].strip()
+        
+        try:
+            parsed = json.loads(response_text)
+            date = parsed.get("date", "")
+            time = parsed.get("time", "")
+            content = parsed.get("content", "")
+
+            print(f"[待办处理] 解析结果 - 日期:{date} 时间:{time} 内容:{content}")
+
+            # 验证日期格式
+            if date:
+                try:
+                    datetime.strptime(date, "%Y-%m-%d")
+                except ValueError:
+                    print(f"[待办处理] ❌ 日期格式无效: {date}")
+                    return {
+                        "response": f"❌ 日期格式无效: {date}\n\n请使用正确的日期格式，例如：「今天18点给陈龙打电话」",
+                        "error": "Invalid date format"
+                    }
+
+            # 验证时间格式（如果提供了时间）
+            if time:
+                try:
+                    datetime.strptime(time, "%H:%M")
+                except ValueError:
+                    print(f"[待办处理] ⚠️  时间格式异常: {time}，将忽略时间")
+                    time = ""
+
+            if date and content:
+                # 添加待办
+                todo_item = todo_manager.add_todo(date, time, content)
+                
+                if todo_item:
+                    response = f"✅ 待办已添加！\n\n"
+                    response += f"📅 日期: {date}\n"
+                    if time:
+                        response += f"⏰ 时间: {time}\n"
+                    response += f"📝 内容: {content}\n"
+                    response += f"\n💡 你可以随时问我「今天有什么要做的？」或「{date}有什么待办？」来查看待办事项。"
+                else:
+                    response = "❌ 添加待办失败，请重试。"
+            else:
+                response = "❌ 无法解析待办信息，请提供更明确的日期和内容。\n\n示例：「今天18点给陈龙打电话」"
+            
+            return {
+                "response": response,
+                "todo_action": "add",
+                "todo_date": date,
+                "todo_time": time,
+                "todo_content": content
+            }
+            
+        except json.JSONDecodeError as e:
+            print(f"[待办处理] JSON解析失败: {e}")
+            return {
+                "response": "❌ 解析待办信息失败，请重试。\n\n示例：「今天18点给陈龙打电话」",
+                "error": str(e)
+            }
+    
+    elif intent == "query_todo":
+        # 使用LLM解析查询意图
+        prompt = f"""从用户输入中提取查询信息，返回JSON格式。
+
+用户输入: {user_input}
+
+需要提取:
+1. query_type: 查询类型
+   - "today": 查询今天
+   - "date": 查询特定日期
+   - "range": 查询日期范围
+   - "upcoming": 查询未来几天
+   - "search": 搜索关键词
+2. date: 日期（YYYY-MM-DD），适用于 date 类型
+3. start_date: 开始日期，适用于 range 类型
+4. end_date: 结束日期，适用于 range 类型
+5. days: 天数，适用于 upcoming 类型
+6. keyword: 搜索关键词，适用于 search 类型
+
+今天是: {datetime.now().strftime("%Y-%m-%d")}
+
+示例:
+"今天有什么要做的？" -> {{"query_type": "today"}}
+"明天有什么待办？" -> {{"query_type": "date", "date": "2024-01-23"}}
+"这周有什么任务？" -> {{"query_type": "range", "start_date": "2024-01-22", "end_date": "2024-01-28"}}
+"未来3天的待办" -> {{"query_type": "upcoming", "days": 3}}
+"陈龙相关的待办" -> {{"query_type": "search", "keyword": "陈龙"}}
+
+只返回JSON:"""
+
+        result = llm.invoke([HumanMessage(content=prompt)])
+        response_text = result.content.strip()
+        
+        # 提取JSON
+        if "```json" in response_text:
+            response_text = response_text.split("```json")[1].split("```")[0].strip()
+        elif "```" in response_text:
+            response_text = response_text.split("```")[1].split("```")[0].strip()
+        
+        try:
+            parsed = json.loads(response_text)
+            query_type = parsed.get("query_type", "today")
+            
+            print(f"[待办处理] 查询类型: {query_type}")
+            
+            response = ""
+            
+            if query_type == "today":
+                todos = todo_manager.get_today_todos()
+                date = datetime.now().strftime("%Y-%m-%d")
+                response = f"📅 今天（{date}）的待办:\n\n"
+                if todos:
+                    response += todo_manager.format_todos_display(todos)
+                else:
+                    response += "📭 今天没有待办事项"
+            
+            elif query_type == "date":
+                date = parsed.get("date", "")
+                if date:
+                    todos = todo_manager.get_todos(date)
+                    response = f"📅 {date} 的待办:\n\n"
+                    if todos:
+                        response += todo_manager.format_todos_display(todos)
+                    else:
+                        response += "📭 这天没有待办事项"
+                else:
+                    response = "❌ 无法解析日期"
+            
+            elif query_type == "range":
+                start_date = parsed.get("start_date", "")
+                end_date = parsed.get("end_date", "")
+                if start_date and end_date:
+                    todos_by_date = todo_manager.get_todos_by_range(start_date, end_date)
+                    response = f"📅 {start_date} 到 {end_date} 的待办:\n\n"
+                    if todos_by_date:
+                        for date, todos in sorted(todos_by_date.items()):
+                            response += f"\n📆 {date}\n"
+                            response += todo_manager.format_todos_display(todos) + "\n"
+                    else:
+                        response += "📭 这个时间段没有待办事项"
+                else:
+                    response = "❌ 无法解析日期范围"
+            
+            elif query_type == "upcoming":
+                days = parsed.get("days", 7)
+                todos_by_date = todo_manager.get_upcoming_todos(days)
+                response = f"📅 未来 {days} 天的待办:\n\n"
+                if todos_by_date:
+                    for date, todos in sorted(todos_by_date.items()):
+                        response += f"\n📆 {date}\n"
+                        response += todo_manager.format_todos_display(todos) + "\n"
+                else:
+                    response += "📭 未来几天没有待办事项"
+            
+            elif query_type == "search":
+                keyword = parsed.get("keyword", "")
+                if keyword:
+                    results = todo_manager.search_todos(keyword)
+                    response = f"🔍 搜索「{keyword}」的结果:\n\n"
+                    if results:
+                        for date, todos in sorted(results.items()):
+                            response += f"\n📆 {date}\n"
+                            response += todo_manager.format_todos_display(todos) + "\n"
+                    else:
+                        response += f"📭 没有找到包含「{keyword}」的待办事项"
+                else:
+                    response = "❌ 请提供搜索关键词"
+            
+            return {
+                "response": response,
+                "todo_action": "query",
+                "todo_result": response
+            }
+            
+        except json.JSONDecodeError as e:
+            print(f"[待办处理] JSON解析失败: {e}")
+            return {
+                "response": "❌ 解析查询失败，请重试。\n\n示例：「今天有什么要做的？」",
+                "error": str(e)
+            }
+    
+    else:
+        return {
+            "response": "❌ 未知的待办操作",
+            "error": "Unknown todo intent"
+        }

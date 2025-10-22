@@ -1,0 +1,120 @@
+---
+globs: test_*.py,*_test.py
+---
+
+# 测试开发指南
+
+## 测试文件位置
+所有测试文件位于 [test/](mdc:test/) 目录。
+
+## 测试命名规范
+- 测试文件：`test_<module_name>.py`
+- 测试函数：`test_<function_name>_<scenario>()`
+- 测试类：`Test<ClassName>`
+
+## 测试结构
+```python
+"""
+<模块名> 测试模块
+"""
+import pytest
+from module_name import function_name
+
+class TestFeatureName:
+    """功能测试类"""
+    
+    def setup_method(self):
+        """每个测试前的设置"""
+        pass
+    
+    def test_normal_case(self):
+        """测试正常情况"""
+        result = function_name("input")
+        assert result == expected
+    
+    def test_edge_case(self):
+        """测试边界情况"""
+        pass
+    
+    def test_error_handling(self):
+        """测试错误处理"""
+        with pytest.raises(ValueError):
+            function_name("invalid")
+```
+
+## 现有测试
+
+### 文件引用测试
+[test/test_file_reference.py](mdc:test/test_file_reference.py)
+- 测试 @ 语法解析
+- 测试文件匹配
+- 测试路径解析
+
+### 文件选择器测试
+[test/test_interactive_selector.py](mdc:test/test_interactive_selector.py)
+- 测试文件列表生成
+- 测试搜索和过滤
+- 测试分页功能
+
+### 演示测试
+[test/test_demo.py](mdc:test/test_demo.py)
+- 端到端测试
+- 工作流测试
+
+## Mock 和 Fixture
+
+### Mock LLM 调用
+```python
+from unittest.mock import Mock, patch
+
+@patch('agent_llm.get_llm')
+def test_with_mocked_llm(mock_llm):
+    mock_llm.return_value.invoke.return_value = "mocked response"
+    result = function_that_uses_llm()
+    assert result == expected
+```
+
+### Fixture
+```python
+@pytest.fixture
+def sample_state():
+    """提供测试用的状态"""
+    return {
+        "user_input": "test input",
+        "intent": "execute",
+        # ...
+    }
+
+def test_with_fixture(sample_state):
+    result = process_state(sample_state)
+    assert result["response"] != ""
+```
+
+## 测试覆盖目标
+- 核心功能 100% 覆盖
+- 工作流节点 90% 覆盖
+- 工具函数 80% 覆盖
+- UI 和交互 60% 覆盖（重点测试逻辑）
+
+## 运行测试
+```bash
+# 运行所有测试
+pytest test/
+
+# 运行特定文件
+pytest test/test_file_reference.py
+
+# 显示覆盖率
+pytest --cov=. test/
+
+# 详细输出
+pytest -v test/
+```
+
+## 测试最佳实践
+- 每个功能都应有测试
+- 测试应该快速（Mock 外部依赖）
+- 测试应该独立（不依赖其他测试）
+- 使用描述性的测试名称
+- 测试应该清晰表达意图
+- 优先测试核心功能和边界情况

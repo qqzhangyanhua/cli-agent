@@ -1,0 +1,61 @@
+---
+alwaysApply: true
+---
+
+# AI Agent CLI 项目概览
+
+## 项目简介
+这是一个基于 LangGraph 和 LangChain 的智能终端助手，支持自然语言执行命令、文件操作、代码生成和智能问答。
+
+## 核心特性
+- 🗣️ 自然语言执行终端命令
+- 📁 @ 智能文件引用（交互式文件选择器）
+- 🧠 对话记忆（上下文理解）
+- 🔌 MCP 集成（文件系统和桌面控制）
+- 🎯 双 LLM 架构（通用模型 + 代码模型）
+- 🚀 动态创建并执行代码
+
+## 项目入口
+主入口文件是 [ai-agent](mdc:ai-agent)，这是一个可执行的 Python 脚本，提供 CLI 接口。
+
+## 核心模块架构
+
+### 配置层
+- [agent_config.py](mdc:agent_config.py) - 双 LLM 配置、工作目录、安全配置
+- [mcp_config.json](mdc:mcp_config.json) - MCP 服务器配置
+
+### 工作流层
+- [agent_workflow.py](mdc:agent_workflow.py) - LangGraph 工作流定义和路由
+- [agent_nodes.py](mdc:agent_nodes.py) - 所有工作流节点实现
+
+### 工具层
+- [mcp_manager.py](mdc:mcp_manager.py) - MCP 工具管理和调用
+- [file_reference_parser.py](mdc:file_reference_parser.py) - @ 文件引用解析
+- [interactive_file_selector.py](mdc:interactive_file_selector.py) - 交互式文件选择器
+- [git_tools.py](mdc:git_tools.py) - Git 操作工具
+
+### 支持层
+- [agent_memory.py](mdc:agent_memory.py) - 对话历史管理
+- [agent_ui.py](mdc:agent_ui.py) - 用户界面和特殊命令处理
+- [agent_llm.py](mdc:agent_llm.py) - LLM 实例化和管理
+- [agent_utils.py](mdc:agent_utils.py) - 工具函数
+
+## 工作流程
+```
+用户输入 → 文件引用解析 → 意图分析 → 工作流路由
+                                    ↓
+                     ┌──────────────┼──────────────┐
+                     ↓              ↓              ↓
+                 命令执行        文件操作        智能问答
+                     ↓              ↓              ↓
+                     └──────────────┼──────────────┘
+                                    ↓
+                            结果生成 → 记忆存储
+```
+
+## 双 LLM 架构
+- **通用模型** (LLM_CONFIG): 意图分析、智能问答、上下文理解
+- **代码模型** (LLM_CONFIG2): 命令生成、代码编写、任务规划
+
+## 文档位置
+详细文档位于 [docs/](mdc:docs/) 目录，主文档是 [README.md](mdc:README.md)。

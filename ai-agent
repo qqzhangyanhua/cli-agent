@@ -2,13 +2,27 @@
 """
 AI智能体终端控制工具 - CLI版本
 
-一个智能的终端助手，支持自然语言执行命令、文件操作和对话记忆。
+一个智能的终端助手，支持自然语言执行命令、文件操作、待办管理和对话记忆。
 
 使用示例:
+    # 基础功能
     ai-agent                          # 交互模式
     ai-agent "列出所有Python文件"     # 单次执行
     ai-agent --version                # 查看版本
     ai-agent --help                   # 查看帮助
+
+    # 待办事项管理
+    ai-agent "今天18点给陈龙打电话"     # 添加待办
+    ai-agent "明天上午10点开会"         # 添加待办
+    ai-agent "提醒我后天下午2点交报告"  # 添加待办
+    ai-agent "今天有什么要做的"         # 查询待办
+    ai-agent "明天有什么安排"           # 查询待办
+    ai-agent "未来3天有什么任务"        # 查询待办
+    ai-agent "搜索陈龙相关的待办"       # 搜索待办
+
+    # 其他功能
+    ai-agent "生成git commit消息"     # Git commit生成
+    ai-agent "什么是Python"           # 知识问答
 """
 
 import sys
@@ -176,21 +190,33 @@ def execute_single_command(command: str, quiet: bool = False) -> int:
             "mcp_result": "",
             "original_input": "",
             "referenced_files": [],
-            "file_contents": {}
+            "file_contents": {},
+            # 待办字段仅在需要时由节点填充，不预先初始化
+            "todo_action": "",
+            "todo_date": "",
+            "todo_time": "",
+            "todo_content": "",
+            "todo_result": ""
         }
         
         # 执行工作流
         result = agent.invoke(initial_state)
-        
+
         # 显示结果
+        # 注意：问答节点（question_answerer）已经流式打印了，不需要重复显示
+        intent = result.get('intent', '')
+
         if quiet:
             # 安静模式：只输出结果，不带格式
-            print(result['response'])
+            if intent != 'question':  # 问答已流式打印
+                print(result['response'])
         else:
-            print("─" * 80)
-            print(f"🤖 助手: {result['response']}")
-            print("─" * 80)
-        
+            # 非问答类型需要格式化输出
+            if intent not in ['question']:
+                print("─" * 80)
+                print(f"🤖 助手: {result['response']}")
+                print("─" * 80)
+
         # 判断是否成功
         if result.get('error'):
             return 1
@@ -258,22 +284,34 @@ def interactive_mode(quiet: bool = False, no_memory: bool = False):
                 "mcp_result": "",
                 "original_input": "",
                 "referenced_files": [],
-                "file_contents": {}
+                "file_contents": {},
+                "todo_action": "",
+                "todo_date": "",
+                "todo_time": "",
+                "todo_content": "",
+                "todo_result": ""
             }
             
             # 执行工作流
             result = agent.invoke(initial_state)
-            
+
             # 显示响应
-            print("─" * 80)
-            print(f"🤖 助手: {result['response']}")
-            print("─" * 80 + "\n")
-            
+            # 注意：问答节点已经流式打印，其他类型需要格式化输出
+            intent = result.get('intent', 'unknown')
+
+            if intent not in ['question']:
+                print("─" * 80)
+                print(f"🤖 助手: {result['response']}")
+                print("─" * 80 + "\n")
+            else:
+                # 问答已经流式输出，只需要空行分隔
+                print()
+
             # 保存到记忆（除非禁用）
             if not no_memory:
                 memory.add_interaction(
-                    user_input, 
-                    result['response'], 
+                    user_input,
+                    result['response'],
                     result.get('intent', 'unknown')
                 )
             

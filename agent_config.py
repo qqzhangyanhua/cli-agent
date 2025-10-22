@@ -3,7 +3,7 @@ AI智能体配置模块
 包含所有配置信息和常量
 """
 
-from typing import TypedDict, Literal
+from typing import TypedDict, Literal, Optional
 
 # ============================================
 # LLM配置
@@ -63,7 +63,7 @@ MAX_COMMAND_HISTORY = 20
 class AgentState(TypedDict):
     """智能体状态"""
     user_input: str
-    intent: Literal["terminal_command", "multi_step_command", "mcp_tool_call", "git_commit", "question", "unknown"]
+    intent: Literal["terminal_command", "multi_step_command", "mcp_tool_call", "git_commit", "question", "add_todo", "query_todo", "unknown"]
     command: str
     commands: list
     command_output: str
@@ -82,3 +82,9 @@ class AgentState(TypedDict):
     original_input: str
     referenced_files: list
     file_contents: dict
+    # 待办事项相关字段
+    todo_action: str
+    todo_date: str
+    todo_time: str
+    todo_content: str
+    todo_result: str

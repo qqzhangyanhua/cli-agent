@@ -1,0 +1,136 @@
+---
+description: @ 文件引用功能开发指南
+---
+
+# @ 文件引用功能指南
+
+这是项目的核心特性之一，允许用户通过 @ 语法快速引用文件。
+
+## 核心模块
+- [file_reference_parser.py](mdc:file_reference_parser.py) - @ 语法解析和文件内容读取
+- [interactive_file_selector.py](mdc:interactive_file_selector.py) - 交互式文件选择器
+- [ai-agent](mdc:ai-agent) 中的 `smart_input_handler()` - 智能输入处理
+
+## 工作流程
+
+### 1. 用户输入 @ 
+```python
+# 在 smart_input_handler() 中处理
+if user_input == "@":
+    # 启动交互式文件选择器
+    selected_file = interactive_file_select("选择要引用的文件")
+```
+
+### 2. 快速搜索模式
+```python
+# 用户输入 @readme
+if user_input.startswith("@") and len(user_input) > 1:
+    search_term = user_input[1:].split()[0]
+    selected_file = quick_file_select(search_term)
+```
+
+### 3. 直接引用模式
+```python
+# 用户输入 "读取 @README.md"
+# 在 file_reference_resolver() 节点中解析
+referenced_files = extract_file_references(user_input)
+for file in referenced_files:
+    content = read_file_content(file)
+    state["file_contents"][file] = content
+```
+
+## 支持的语法
+
+### 文件名匹配
+- `@readme` - 模糊匹配 README.md
+- `@config` - 匹配 agent_config.py
+
+### 路径引用
+- `@./path/file.py` - 相对路径
+- `@/absolute/path` - 绝对路径
+
+### 通配符
+- `@*.py` - 匹配所有 Python 文件
+- `@test_*.py` - 匹配测试文件
+
+### 多文件引用
+- `比较 @old.txt 和 @new.txt` - 同时引用多个文件
+
+## 交互式选择器功能
+
+### 文件列表显示
+```python
+class InteractiveFileSelector:
+    def get_files_list(self) -> List[dict]:
+        """获取文件列表，包含图标、大小等信息"""
+    
+    def display_files_page(self, files, page):
+        """分页显示文件列表"""
+```
+
+### 快捷操作
+- `n` - 下一页
+- `p` - 上一页
+- `h` - 显示/隐藏隐藏文件
+- `r` - 刷新列表
+- `q` - 退出选择
+
+### 搜索和过滤
+```python
+def filter_files(self, files: List[dict], filter_text: str):
+    """实时搜索和过滤文件"""
+    # 精确匹配 > 开头匹配 > 包含匹配
+```
+
+## 文件内容注入
+
+### 在工作流中处理
+```python
+def file_reference_resolver(state: AgentState) -> AgentState:
+    """解析 @ 引用并读取文件内容"""
+    user_input = state["user_input"]
+    
+    # 提取所有 @ 引用
+    files = extract_file_references(user_input)
+    
+    # 读取文件内容
+    for file in files:
+        content = read_file_content(file)
+        state["file_contents"][file] = content
+        state["referenced_files"].append(file)
+    
+    return state
+```
+
+### 内容注入到提示词
+```python
+# 在生成提示词时注入文件内容
+if state["file_contents"]:
+    context = "\n\n已引用的文件内容：\n"
+    for file, content in state["file_contents"].items():
+        context += f"\n--- {file} ---\n{content}\n"
+    prompt = base_prompt + context
+```
+
+## 文件图标映射
+```python
+icon_map = {
+    '.py': '🐍',
+    '.js': '🟨',
+    '.md': '📝',
+    '.json': '📋',
+    '.txt': '📄',
+    # 目录使用 📁
+}
+```
+
+## 错误处理
+- 文件不存在 → 提供相似文件建议
+- 权限错误 → 友好的错误提示
+- 空文件 → 提示文件为空
+- 二进制文件 → 警告并跳过
+
+## 扩展建议
+- 支持文件编辑：`编辑 @config.py 添加新配置`
+- 支持目录操作：`列出 @src/ 目录的所有文件`
+- 支持 Git 操作：`对比 @file 的改动`

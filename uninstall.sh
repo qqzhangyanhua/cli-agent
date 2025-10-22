@@ -32,10 +32,16 @@ MODULES=(
     "agent_nodes.py"
     "agent_workflow.py"
     "agent_ui.py"
+    "agent_tool_calling.py"
     "mcp_manager.py"
     "mcp_filesystem.py"
     "mcp_config.json"
     "git_tools.py"
+    "git_commit_tools.py"
+    "file_reference_parser.py"
+    "interactive_file_selector.py"
+    "todo_manager.py"
+    "todo_tools.py"
 )
 
 for module in "${MODULES[@]}"; do

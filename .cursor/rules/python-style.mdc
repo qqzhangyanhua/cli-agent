@@ -1,0 +1,55 @@
+---
+globs: *.py
+---
+
+# Python 代码规范
+
+## 通用规范
+- 使用 Python 3.8+ 特性
+- 遵循 PEP 8 代码风格
+- 使用类型注解（TypedDict, Optional, List 等）
+- 每个函数都要有 docstring
+- 保持代码简洁清晰
+
+## 文档字符串格式
+```python
+def function_name(param1: str, param2: int) -> str:
+    """
+    函数简短描述
+    
+    Args:
+        param1: 参数1说明
+        param2: 参数2说明
+    
+    Returns:
+        返回值说明
+    """
+```
+
+## 类型注解
+- 始终使用类型注解
+- 对于复杂类型，使用 TypedDict 定义
+- 导入类型：`from typing import TypedDict, Optional, List, Dict`
+
+## 错误处理
+- 使用 try-except 捕获预期的异常
+- 打印用户友好的错误消息
+- 使用 emoji 图标增强可读性（✅ ❌ ⚠️ 💡 等）
+
+## 模块化
+- 每个文件只负责一个功能领域
+- 使用清晰的函数和类命名
+- 避免循环导入
+
+## 配置管理
+所有配置都应在 [agent_config.py](mdc:agent_config.py) 中定义，不要硬编码。
+
+## LLM 调用
+- 通用任务使用 LLM_CONFIG（意图分析、问答）
+- 代码/命令生成使用 LLM_CONFIG2
+- 通过 [agent_llm.py](mdc:agent_llm.py) 的辅助函数调用
+
+## 用户交互
+- 使用 emoji 增强提示信息
+- 保持一致的输出格式（分隔线使用 "─" * 80）
+- 友好的错误提示和建议
