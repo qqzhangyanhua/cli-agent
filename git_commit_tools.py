@@ -241,12 +241,17 @@ feat: 实现Git commit消息深度分析生成
 
         print(f"[Commit生成] ✅ 生成完成")
 
-        # 格式化响应
+        # 处理 commit 消息中的双引号，避免命令执行问题
+        def escape_commit_message(msg: str) -> str:
+            """转义 commit 消息中的双引号，确保命令可以正确执行"""
+            # 将双引号替换为单引号，避免命令行解析问题
+            return msg.replace('"', "'")
+        
+        escaped_commit_message = escape_commit_message(commit_message)
+        
+        # 格式化响应 - 直接显示可执行的命令
         response = "📝 Git Commit消息生成完成\n\n"
-        response += "=" * 60 + "\n"
-        response += commit_message + "\n"
-        response += "=" * 60 + "\n\n"
-
+        
         response += f"📊 变更摘要:\n"
         response += f"  • 变更文件: {len(analysis['files_changed'])} 个\n"
         if analysis['files_changed']:
@@ -256,12 +261,20 @@ feat: 实现Git commit消息深度分析生成
             if len(analysis['files_changed']) > 5:
                 response += f"    ... 还有 {len(analysis['files_changed']) - 5} 个文件\n"
 
-        response += f"\n💡 使用方法:\n"
+        response += f"\n💡 直接执行以下命令:\n"
+        response += "─" * 60 + "\n"
+        
         if analysis['has_staged']:
-            response += f"  git commit -m \"{commit_message.split(chr(10))[0]}\"\n"
+            response += f'git commit -m "{escaped_commit_message}"\n'
         else:
-            response += f"  git add .  # 先暂存变更\n"
-            response += f"  git commit -m \"{commit_message.split(chr(10))[0]}\"\n"
+            response += f"git add .  # 先暂存变更\n"
+            response += f'git commit -m "{escaped_commit_message}"\n'
+        
+        response += "─" * 60 + "\n"
+        
+        # 如果原始消息包含双引号，提供说明
+        if '"' in commit_message:
+            response += "\n💡 注意: 原消息中的双引号已转换为单引号，确保命令正确执行\n"
 
         return response
 

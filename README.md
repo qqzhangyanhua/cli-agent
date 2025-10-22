@@ -1,19 +1,19 @@
-# 🤖 AI Agent CLI - 智能终端助手
+# 🤖 DNM智能体终端控制工具 - 智能终端助手
 
 > 一个强大的 AI 终端助手，让你用自然语言控制命令行！支持文件操作、代码执行、MCP 集成和智能文件引用。
 
 ## ✨ 核心特性
 
 - 🗣️ **自然语言执行命令** - 用人话说，让 AI 执行终端命令
-- 📁 **@ 智能文件引用** - 交互式文件选择器，快速引用和操作文件
+- 📁 **@ 智能文件引用** - 交互式文件选择器，快速引用文件
 - 🧠 **对话记忆** - 记住上下文，支持连续对话
+- 📝 **Git 智能工具** - 自动生成 commit 消息、代码审查
+- 📊 **数据转换工具** - JSON/CSV/YAML/XML 格式互转、验证
+- 🔍 **环境诊断** - 自动检测开发环境配置和依赖问题
+- 📋 **待办事项管理** - 智能识别并管理日程安排和任务提醒
 - 🔌 **MCP 集成** - 文件系统和桌面控制功能
 - 🎯 **双 LLM 配置** - 通用模型处理对话，代码模型生成命令
 - 🚀 **创建并执行代码** - 一句话生成并运行代码
-- 📝 **Git 智能工具** - 自动生成 commit 消息、代码审查（Code Review）
-- 📊 **数据转换工具** - JSON/CSV/YAML/XML 格式互转、验证、美化
-- 🔍 **环境诊断** - 自动检测开发环境配置和依赖问题
-- 📋 **待办事项管理** - 智能识别并管理日程安排和任务提醒
 
 ---
 
@@ -37,7 +37,7 @@ source ~/.zshrc
 ### 步骤3: 验证安装
 
 ```bash
-ai-agent --version
+dnm --version
 ```
 
 看到版本号 `1.0.0` 就成功了！✅
@@ -51,7 +51,7 @@ ai-agent --version
 直接启动进入对话模式：
 
 ```bash
-ai-agent
+dnm
 ```
 
 然后就可以自然对话了：
@@ -68,10 +68,10 @@ ai-agent
 适合脚本调用或快速执行：
 
 ```bash
-ai-agent "列出所有Python文件"
-ai-agent "读取README.md文件"
-ai-agent "搜索包含TODO的文件"
-ai-agent "显示git状态"
+dnm "列出所有Python文件"
+dnm "读取README.md文件"
+dnm "搜索包含TODO的文件"
+dnm "显示git状态"
 ```
 
 ### 📂 方式3: 指定工作目录
@@ -79,8 +79,8 @@ ai-agent "显示git状态"
 在特定目录执行任务：
 
 ```bash
-ai-agent -w /path/to/project "列出所有文件"
-ai-agent --working-dir ~/projects/myapp "查看Python版本"
+dnm -w /path/to/project "列出所有文件"
+dnm --working-dir ~/projects/myapp "查看Python版本"
 ```
 
 ### 🔕 方式4: 安静模式
@@ -88,8 +88,8 @@ ai-agent --working-dir ~/projects/myapp "查看Python版本"
 只输出结果，不显示格式：
 
 ```bash
-ai-agent -q "列出所有Python文件"
-ai-agent --quiet "查看当前目录"
+dnm -q "列出所有Python文件"
+dnm --quiet "查看当前目录"
 ```
 
 ---
@@ -100,78 +100,78 @@ ai-agent --quiet "查看当前目录"
 
 ```bash
 # 读取文件
-ai-agent "读取package.json"
-ai-agent "显示README.md的内容"
+dnm "读取package.json"
+dnm "显示README.md的内容"
 
 # 列出文件
-ai-agent "列出所有Python文件"
-ai-agent "显示当前目录的所有.js文件"
+dnm "列出所有Python文件"
+dnm "显示当前目录的所有.js文件"
 
 # 搜索文件
-ai-agent "搜索包含LLM_CONFIG的文件"
-ai-agent "查找所有包含TODO的文件"
+dnm "搜索包含LLM_CONFIG的文件"
+dnm "查找所有包含TODO的文件"
 
 # 写入文件
-ai-agent "创建test.txt文件并写入Hello World"
+dnm "创建test.txt文件并写入Hello World"
 ```
 
 ### 🖥️ 终端命令示例
 
 ```bash
 # 查看系统信息
-ai-agent "查看Python版本"
-ai-agent "显示当前目录的磁盘使用情况"
+dnm "查看Python版本"
+dnm "显示当前目录的磁盘使用情况"
 
 # 进程管理
-ai-agent "显示所有Python进程"
-ai-agent "查看端口8080的占用情况"
+dnm "显示所有Python进程"
+dnm "查看端口8080的占用情况"
 
 # Git操作
-ai-agent "显示git状态"
-ai-agent "查看最近5次提交记录"
+dnm "显示git状态"
+dnm "查看最近5次提交记录"
 
 # Git智能功能
-ai-agent "生成commit消息"  # 智能分析代码变更并生成规范的commit消息
-ai-agent "对当前代码进行code review"  # 智能代码审查，按严重性分级报告问题
+dnm "生成commit消息"  # 智能分析代码变更并生成规范的commit消息
+dnm "对当前代码进行code review"  # 智能代码审查，按严重性分级报告问题
 
 # 数据转换功能
-ai-agent "@data.json 转换为CSV"  # JSON转CSV格式
-ai-agent "@config.yaml 转换为JSON"  # YAML转JSON格式
-ai-agent "@data.json 验证格式"  # 验证JSON格式是否正确
-ai-agent "@config.json 美化格式"  # 格式化JSON使其更易读
+dnm "@data.json 转换为CSV"  # JSON转CSV格式
+dnm "@config.yaml 转换为JSON"  # YAML转JSON格式
+dnm "@data.json 验证格式"  # 验证JSON格式是否正确
+dnm "@config.json 美化格式"  # 格式化JSON使其更易读
 
 # 环境诊断功能
-ai-agent "检查开发环境"  # 诊断Python环境、依赖、工具等
-ai-agent "诊断环境配置"  # 检测环境问题并提供修复建议
+dnm "检查开发环境"  # 诊断Python环境、依赖、工具等
+dnm "诊断环境配置"  # 检测环境问题并提供修复建议
 
 # 待办事项管理
-ai-agent "今天18点给陈龙打电话"  # 添加待办事项
-ai-agent "明天上午10点开会"  # 添加日程安排
-ai-agent "今天有什么要做的"  # 查询今日待办
-ai-agent "搜索陈龙相关的待办"  # 搜索特定关键词的待办
+dnm "今天18点给陈龙打电话"  # 添加待办事项
+dnm "明天上午10点开会"  # 添加日程安排
+dnm "今天有什么要做的"  # 查询今日待办
+dnm "搜索陈龙相关的待办"  # 搜索特定关键词的待办
 ```
 
 ### 🚀 创建和执行代码
 
 ```bash
 # 创建并运行
-ai-agent "创建hello.py打印Hello World然后执行"
-ai-agent "写一个Python脚本计算1到100的和并运行"
+dnm "创建hello.py打印Hello World然后执行"
+dnm "写一个Python脚本计算1到100的和并运行"
 
 # 批量操作
-ai-agent "创建10个测试文件test1.txt到test10.txt"
+dnm "创建10个测试文件test1.txt到test10.txt"
 ```
 
 ### 📝 智能问答
 
 ```bash
 # 分析代码
-ai-agent "这个项目是做什么的？"
-ai-agent "agent_config.py里有什么配置项？"
+dnm "这个项目是做什么的？"
+dnm "agent_config.py里有什么配置项？"
 
 # 技术咨询
-ai-agent "如何在Python中读取JSON文件？"
-ai-agent "解释一下LangGraph的工作原理"
+dnm "如何在Python中读取JSON文件？"
+dnm "解释一下LangGraph的工作原理"
 ```
 
 ---
@@ -237,7 +237,7 @@ ai-agent "解释一下LangGraph的工作原理"
 
 ```bash
 # 启动交互模式
-ai-agent
+dnm
 
 # 在对话中使用 @
 👤 你: @
@@ -260,7 +260,7 @@ ai-agent
 ## 🔧 命令行选项
 
 ```bash
-ai-agent [选项] [命令]
+dnm [选项] [命令]
 
 选项:
   -h, --help                显示帮助信息
@@ -271,11 +271,11 @@ ai-agent [选项] [命令]
   --no-memory               禁用对话记忆功能
 
 示例:
-  ai-agent                            # 交互模式
-  ai-agent "列出所有Python文件"       # 单次命令
-  ai-agent -w ~/project "git status"  # 指定目录
-  ai-agent -q "pwd"                   # 安静模式
-  ai-agent --no-memory                # 禁用记忆
+  dnm                            # 交互模式
+  dnm "列出所有Python文件"       # 单次命令
+  dnm -w ~/project "git status"  # 指定目录
+  dnm -q "pwd"                   # 安静模式
+  dnm --no-memory                # 禁用记忆
 ```
 
 ---
@@ -284,7 +284,7 @@ ai-agent [选项] [命令]
 
 ### 修改 AI 模型
 
-编辑 `~/.local/bin/agent_config.py`：
+编辑配置文件 `agent_config.py`：
 
 ```python
 # 通用模型配置（用于对话和理解）
@@ -306,7 +306,7 @@ LLM_CONFIG2 = {
 
 ### MCP 工具配置
 
-编辑 `~/.local/bin/mcp_config.json`：
+编辑配置文件 `mcp_config.json`：
 
 ```json
 {
@@ -329,7 +329,7 @@ cd /Users/zhangyanhua/Desktop/AI/tushare/quantification/example
 ```
 
 会自动清理：
-- `~/.local/bin/ai-agent` 及相关文件
+- `~/.local/bin/dnm` 及相关文件
 - 安装的 Python 模块
 - MCP 配置文件
 
@@ -362,7 +362,7 @@ cd /Users/zhangyanhua/Desktop/AI/tushare/quantification/example
 
 | 模块 | 文件 | 功能 |
 |------|------|------|
-| 入口程序 | `ai-agent` | CLI 入口，参数解析 |
+| 入口程序 | `dnm` | CLI 入口，参数解析 |
 | 配置管理 | `agent_config.py` | 双 LLM 配置 |
 | 工作流 | `agent_workflow.py` | LangGraph 工作流定义 |
 | 节点实现 | `agent_nodes.py` | 各种处理节点 |
@@ -427,14 +427,14 @@ MIT License
 ## 🎉 开始使用
 
 ```bash
-ai-agent
+dnm
 ```
 
 **就这么简单！** 开始享受 AI 助手带来的便利吧！🚀
 
 ### 快速上手
 
-1. ✅ 安装完成后，直接输入 `ai-agent` 启动
+1. ✅ 安装完成后，直接输入 `dnm` 启动
 2. 💬 用自然语言描述你想做什么
 3. 📁 使用 `@` 快速引用文件
 4. 🔍 输入 `tools` 查看所有可用功能
