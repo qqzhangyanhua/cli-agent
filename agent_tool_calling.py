@@ -162,7 +162,18 @@ def simple_tool_calling_node(state: AgentState, enable_streaming: bool = True) -
    参数: 无
    适用场景: "检查开发环境"、"诊断环境"、"环境检测"
 
-7. none - 不需要工具（普通问答）
+7. terminal_command - 执行终端命令
+   参数: 无（自动生成命令）
+   适用场景: 
+   - "列出当前目录下的json文件"、"ls *.json"
+   - "查看Python版本"、"python --version"
+   - "显示当前路径"、"pwd"
+   - "创建文件夹"、"mkdir xxx"
+   - "删除文件"、"rm xxx"
+   - "查看文件内容"、"cat xxx"
+   - 任何可以用终端命令完成的操作
+
+8. none - 不需要工具（普通问答）
 
 用户输入: {user_input}
 
@@ -180,6 +191,8 @@ def simple_tool_calling_node(state: AgentState, enable_streaming: bool = True) -
 - 如果用户提到"code review"、"代码审查"、"检查代码"、"review"，优先选择 code_review
 - 如果用户使用 @ 引用了文件并要求"转换"、"验证"、"美化"，选择 data_conversion
 - 如果用户要求"检查环境"、"诊断环境"、"环境检测"，选择 environment_diagnostic
+- 如果用户要求执行系统操作（列出文件、查看版本、创建删除文件等），选择 terminal_command
+- 终端命令的关键词：列出、查看、显示、创建、删除、运行、执行、ls、cat、mkdir、rm、pwd、python、node等
 - 如果无法判断，返回 {{"tool": "none", "args": {{}}}}
 """
 
@@ -244,6 +257,13 @@ def simple_tool_calling_node(state: AgentState, enable_streaming: bool = True) -
             return {
                 "intent": "environment_diagnostic",
                 "response": ""  # 由节点处理
+            }
+
+        elif tool_name == "terminal_command":
+            # 终端命令需要传递到命令生成和执行节点
+            return {
+                "intent": "terminal_command",
+                "response": ""  # 由后续节点处理
             }
 
         else:
