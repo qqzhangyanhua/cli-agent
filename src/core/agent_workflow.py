@@ -41,12 +41,9 @@ def route_by_intent(state: AgentState) -> str:
     """
     intent = state["intent"]
 
-    if intent in ["add_todo", "query_todo", "git_commit", "code_review", "git_pull", "git_push", "mcp_tool_call"]:
+    if intent in ["add_todo", "query_todo", "git_commit", "code_review", "git_pull", "git_push", "mcp_tool_call", "auto_commit"]:
         # 工具调用节点已完成处理，直接结束
         return "end"
-    elif intent == "auto_commit":
-        # Git 自动提交工作流（3步骤：add -> commit）
-        return "git_add"
     elif intent == "full_git_workflow":
         # Git 完整工作流（5步骤：pull -> add -> commit -> push）
         return "git_pull"
