@@ -4,9 +4,9 @@ Code Review 工具 - LangChain Tool 封装
 """
 
 from langchain_core.tools import Tool
-from git_tools import git_tools
-from agent_llm import llm_code
-from agent_config import LLM_CONFIG2
+from src.tools.git_tools import git_tools
+from src.core.agent_llm import llm_code
+from src.core.agent_config import LLM_CONFIG2
 from langchain_core.messages import HumanMessage
 from typing import Dict, List
 

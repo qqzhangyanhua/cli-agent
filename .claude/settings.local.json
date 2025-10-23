@@ -1,14 +1,14 @@
 {
   "permissions": {
     "allow": [
-      "Bash(test:*)",
-      "Bash(python3:*)",
-      "Bash(find:*)",
-      "Bash(./ai-agent \"今天18点给成龙打电话\")",
-      "Bash(./ai-agent \"今天有什么要做的\")",
-      "Bash(./ai-agent:*)",
-      "Bash(timeout 15 bash -c 'echo -e \"\"\"\"什么是Git\\nexit\"\"\"\" | ./ai-agent')",
-      "Bash(timeout 60 bash:*)"
+      "Bash(done)",
+      "Bash(for file in src/core/*.py src/tools/*.py src/ui/*.py src/mcp/*.py)",
+      "Bash(do)",
+      "Bash([ -f \"$file\" ])",
+      "Bash(./dnm \"今天有什么要做的\")",
+      "Bash(tree:*)",
+      "Bash(echo:*)",
+      "Bash(./dnm \"什么是Git\")"
     ],
     "deny": [],
     "ask": []

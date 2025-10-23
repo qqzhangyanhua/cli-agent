@@ -7,18 +7,18 @@ import json
 import re
 from datetime import datetime, timedelta
 from langchain_core.messages import HumanMessage
-from agent_config import AgentState, LLM_CONFIG, LLM_CONFIG2
-from agent_memory import memory
-from agent_utils import execute_terminal_command
-from agent_llm import llm, llm_code
-from mcp_manager import mcp_manager
-from git_tools import git_tools
-from file_reference_parser import parse_file_references, file_parser
-from todo_manager import todo_manager
-from data_converter_tools import data_converter_tools
-from env_diagnostic_tools import env_diagnostic_tools
-from auto_commit_tools import git_add_all, git_commit_with_message, git_pull_tool_func, git_push_tool_func
-from git_commit_tools import generate_commit_message_tool_func
+from src.core.agent_config import AgentState, LLM_CONFIG, LLM_CONFIG2
+from src.core.agent_memory import memory
+from src.core.agent_utils import execute_terminal_command
+from src.core.agent_llm import llm, llm_code
+from src.mcp.mcp_manager import mcp_manager
+from src.tools.git_tools import git_tools
+from src.ui.file_reference_parser import parse_file_references, file_parser
+from src.tools.todo_manager import todo_manager
+from src.tools.data_converter_tools import data_converter_tools
+from src.tools.env_diagnostic_tools import env_diagnostic_tools
+from src.tools.auto_commit_tools import git_add_all, git_commit_with_message, git_pull_tool_func, git_push_tool_func
+from src.tools.git_commit_tools import generate_commit_message_tool_func
 
 
 # ============================================

@@ -2,10 +2,10 @@
 用户界面和交互模块
 """
 
-from agent_config import LLM_CONFIG, LLM_CONFIG2
-from agent_memory import memory
-from mcp_manager import mcp_manager
-from file_reference_parser import get_file_suggestions
+from src.core.agent_config import LLM_CONFIG, LLM_CONFIG2
+from src.core.agent_memory import memory
+from src.mcp.mcp_manager import mcp_manager
+from src.ui.file_reference_parser import get_file_suggestions
 
 
 def print_header():

@@ -47,12 +47,12 @@ SCRIPT_DIR = Path(__file__).parent.absolute()
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from agent_config import AgentState
-from agent_memory import memory
-from agent_workflow import build_agent
-from agent_ui import print_header, handle_special_commands
-from file_reference_parser import update_working_directory
-from interactive_file_selector import (
+from src.core.agent_config import AgentState
+from src.core.agent_memory import memory
+from src.core.agent_workflow import build_agent
+from src.ui.agent_ui import print_header, handle_special_commands
+from src.ui.file_reference_parser import update_working_directory
+from src.ui.interactive_file_selector import (
     interactive_file_select,
     quick_file_select,
     update_selector_working_directory,
@@ -60,7 +60,7 @@ from interactive_file_selector import (
 
 # 尝试导入智能文件输入（IDE 风格）
 try:
-    from smart_file_input import (
+    from src.ui.smart_file_input import (
         get_smart_input,
         update_smart_input_directory,
         check_prompt_toolkit_available,

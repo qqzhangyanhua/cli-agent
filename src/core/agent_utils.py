@@ -5,8 +5,8 @@
 
 import subprocess
 from typing import Dict
-from agent_config import DANGEROUS_COMMANDS, COMMAND_TIMEOUT, WORKING_DIRECTORY
-from agent_memory import memory
+from src.core.agent_config import DANGEROUS_COMMANDS, COMMAND_TIMEOUT, WORKING_DIRECTORY
+from src.core.agent_memory import memory
 
 
 def execute_terminal_command(command: str) -> Dict:

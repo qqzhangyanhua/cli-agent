@@ -3,8 +3,8 @@
 """
 
 from langgraph.graph import StateGraph, END
-from agent_config import AgentState
-from agent_nodes import (
+from src.core.agent_config import AgentState
+from src.core.agent_nodes import (
     file_reference_processor,
     command_generator,
     command_executor,
@@ -23,7 +23,7 @@ from agent_nodes import (
     git_pull_node,
     git_push_node,
 )
-from agent_tool_calling import simple_tool_calling_node
+from src.mcp.agent_tool_calling import simple_tool_calling_node
 
 
 # ============================================

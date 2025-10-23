@@ -7,7 +7,7 @@ import subprocess
 import json
 from typing import Dict, List, Any, Optional
 from pathlib import Path
-from mcp_filesystem import fs_tools
+from src.mcp.mcp_filesystem import fs_tools
 
 
 class MCPManager:

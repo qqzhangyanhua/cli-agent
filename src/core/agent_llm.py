@@ -3,7 +3,7 @@ LLM初始化模块
 """
 
 from langchain_openai import ChatOpenAI
-from agent_config import LLM_CONFIG, LLM_CONFIG2, DEFAULT_HEADERS
+from src.core.agent_config import LLM_CONFIG, LLM_CONFIG2, DEFAULT_HEADERS
 
 
 # 通用LLM - 用于意图分析、问答等

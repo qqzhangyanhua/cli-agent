@@ -8,9 +8,9 @@ Git 自动提交工具 - 完整的 Git 工作流
 import subprocess
 from typing import Dict, Optional
 from langchain_core.tools import Tool
-from git_tools import git_tools
-from git_commit_tools import generate_commit_message_tool_func
-from agent_utils import execute_terminal_command
+from src.tools.git_tools import git_tools
+from src.tools.git_commit_tools import generate_commit_message_tool_func
+from src.core.agent_utils import execute_terminal_command
 
 
 def git_add_all() -> Dict:

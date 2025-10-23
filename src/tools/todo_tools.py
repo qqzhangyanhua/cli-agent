@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List
 import json
 
-from todo_manager import todo_manager
+from src.tools.todo_manager import todo_manager
 
 
 def add_todo_tool_func(input_str: str) -> str:

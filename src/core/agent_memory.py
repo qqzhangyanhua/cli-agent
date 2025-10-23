@@ -4,7 +4,7 @@
 
 from typing import List, Dict
 from datetime import datetime
-from agent_config import MAX_CONVERSATION_HISTORY, MAX_COMMAND_HISTORY
+from src.core.agent_config import MAX_CONVERSATION_HISTORY, MAX_COMMAND_HISTORY
 
 
 class ConversationMemory:
