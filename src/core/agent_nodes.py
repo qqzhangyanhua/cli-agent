@@ -235,6 +235,14 @@ def intent_analyzer(state: AgentState) -> dict:
 4. MCP工具 (mcp_tool_call) - 文件操作、截图、剪贴板等
 
 5. 终端命令 (terminal_command) - 执行系统命令
+   关键特征：包含"打开"、"目录"、"文件夹"、"终端"等操作词汇
+   示例：
+   - "打开当前文件所在目录"
+   - "在新的终端打开当前目录"
+   - "打开这个文件夹"
+   - "用文件管理器打开"
+   - "在Finder中打开"
+   - "在资源管理器中打开"
 
 6. 多步骤命令 (multi_step_command) - 需要多步骤的任务
 
@@ -243,6 +251,7 @@ def intent_analyzer(state: AgentState) -> dict:
 **重要**：
 - 如果输入包含"今天/明天/周X + 时间 + 动作"的模式，优先判断为 add_todo
 - 如果输入询问"有什么要做/待办/任务/安排"，优先判断为 query_todo
+- 如果输入包含"打开"+"目录/文件夹/终端"等词汇，优先判断为 terminal_command
 - 只有在明确不属于待办相关时，才判断为 question
 
 只返回一个词: 'add_todo', 'query_todo', 'git_commit', 'mcp_tool_call', 'terminal_command', 'multi_step_command' 或 'question'
@@ -290,7 +299,11 @@ def command_generator(state: AgentState) -> dict:
 - "创建目录" -> mkdir dirname
 - "删除文件" -> del filename
 - "复制文件" -> copy source dest
-- "移动文件" -> move source dest"""
+- "移动文件" -> move source dest
+- "打开当前目录" -> explorer .
+- "打开当前文件所在目录" -> explorer .
+- "在新的终端打开当前目录" -> start cmd /k "cd /d %cd%"
+- "用文件管理器打开" -> explorer ."""
     else:
         examples = """示例（Unix/Linux/macOS）:
 - "列出当前目录的所有文件" -> ls -la
@@ -300,7 +313,11 @@ def command_generator(state: AgentState) -> dict:
 - "创建目录" -> mkdir dirname
 - "删除文件" -> rm filename
 - "复制文件" -> cp source dest
-- "移动文件" -> mv source dest"""
+- "移动文件" -> mv source dest
+- "打开当前目录" -> open .
+- "打开当前文件所在目录" -> open .
+- "在新的终端打开当前目录" -> open -a Terminal .
+- "用文件管理器打开" -> open ."""
 
     prompt = f"""将用户的自然语言请求转换为终端命令。
 

@@ -371,6 +371,22 @@ def simple_tool_calling_node(state: dict, enable_streaming: bool = True) -> dict
     # 自动生成工具文档
     tools_doc = _generate_tools_documentation(available_tools)
 
+    # 先检查是否是打开目录的请求
+    user_input_lower = user_input.lower()
+    open_keywords = ["打开", "open"]
+    directory_keywords = ["目录", "文件夹", "终端", "directory", "folder", "finder", "explorer", "文件管理器", "资源管理器"]
+    
+    has_open = any(kw in user_input_lower for kw in open_keywords)
+    has_directory = any(kw in user_input_lower for kw in directory_keywords)
+    
+    # 如果是打开目录请求，直接返回terminal_command意图
+    if has_open and has_directory:
+        print(f"[工具选择] 识别为打开目录请求，转为terminal_command")
+        return {
+            "intent": "terminal_command",
+            "response": ""  # 让后续的command_generator处理
+        }
+
     # 让 LLM 选择工具和参数
     prompt = f"""你是一个工具选择助手。根据用户输入，选择合适的工具并提取参数。
 
@@ -390,6 +406,7 @@ def simple_tool_calling_node(state: dict, enable_streaming: bool = True) -> dict
 
 注意：
 - 将相对日期（今天、明天等）转换为具体日期
+- 如果是打开目录/文件夹的请求，返回 {{"tool": "none", "args": {{}}}}
 - 如果无法判断，返回 {{"tool": "none", "args": {{}}}}
 """
 
