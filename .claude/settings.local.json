@@ -8,7 +8,12 @@
       "Bash(./dnm \"今天有什么要做的\")",
       "Bash(tree:*)",
       "Bash(echo:*)",
-      "Bash(./dnm \"什么是Git\")"
+      "Bash(./dnm \"什么是Git\")",
+      "Bash(./dnm:*)",
+      "Bash(timeout 5 bash -c 'echo -e \"\"\"\"exit\\n\"\"\"\" | ./dnm')",
+      "Bash(python:*)",
+      "Bash(time python:*)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

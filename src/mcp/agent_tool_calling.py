@@ -120,81 +120,263 @@ def tool_calling_node(state: AgentState) -> dict:
         }
 
 
-# 简化版：如果 ReAct Agent 太复杂，可以用简单的工具选择逻辑
-def simple_tool_calling_node(state: AgentState, enable_streaming: bool = True) -> dict:
+def _generate_tools_documentation(tools: list) -> str:
     """
-    简化版工具调用节点
-    使用 LLM 选择工具，然后手动调用
+    自动生成工具文档
 
     Args:
-        state: 当前状态
+        tools: 工具列表
+
+    Returns:
+        格式化的工具文档字符串
+    """
+    doc_lines = ["可用工具:"]
+
+    for i, tool in enumerate(tools, 1):
+        params = tool.get("parameters", {}).get("properties", {})
+        required = tool.get("parameters", {}).get("required", [])
+
+        # 构建参数说明
+        param_parts = []
+        for param_name, param_schema in params.items():
+            param_type = param_schema.get("type", "any")
+            param_desc = param_schema.get("description", "")
+            is_required = " (必填)" if param_name in required else " (可选)"
+            param_parts.append(f"{param_name} ({param_type}{is_required}): {param_desc}")
+
+        params_str = "\n   ".join(param_parts) if param_parts else "无"
+
+        doc_lines.append(
+            f"{i}. {tool['name']} - {tool['description']}\n"
+            f"   参数: {params_str}"
+        )
+
+    doc_lines.append(f"\n{len(tools) + 1}. none - 不需要工具（普通问答）")
+
+    return "\n\n".join(doc_lines)
+
+
+def _infer_intent_from_tool(tool_name: str) -> str:
+    """
+    根据工具名推断意图
+
+    Args:
+        tool_name: 工具名称
+
+    Returns:
+        意图标识
+    """
+    # 工具名到意图的映射（用于需要特殊处理的工具）
+    intent_map = {
+        "add_todo": "add_todo",
+        "query_todo": "query_todo",
+        "generate_commit": "git_commit",
+        "auto_commit": "auto_commit",
+        "full_git_workflow": "full_git_workflow",
+        "git_pull": "git_pull",
+        "git_push": "git_push",
+        "code_review": "code_review",
+        "data_conversion": "data_conversion",
+        "environment_diagnostic": "environment_diagnostic",
+        "terminal_command": "terminal_command",
+    }
+
+    # 如果在映射表中，返回对应意图
+    if tool_name in intent_map:
+        return intent_map[tool_name]
+
+    # 否则，根据工具类型判断
+    # MCP工具统一返回 mcp_tool_call
+    return "mcp_tool_call"
+
+
+def _call_langchain_tool(tool_name: str, tool_args: dict) -> str:
+    """
+    调用 LangChain Tool（用于待办、Git等已封装的工具）
+
+    Args:
+        tool_name: 工具名称
+        tool_args: 工具参数
+
+    Returns:
+        工具执行结果
+    """
+    # LangChain 工具映射
+    langchain_tools = {
+        "add_todo": add_todo_tool,
+        "query_todo": query_todo_tool,
+        "generate_commit": generate_commit_tool,
+        "auto_commit": auto_commit_tool,
+        "git_pull": git_pull_tool,
+        "git_push": git_push_tool,
+        "code_review": code_review_tool,
+    }
+
+    if tool_name in langchain_tools:
+        tool = langchain_tools[tool_name]
+        # LangChain Tool 需要 JSON 字符串作为输入
+        if tool_args:
+            return tool.func(json.dumps(tool_args, ensure_ascii=False))
+        else:
+            return tool.func("")
+
+    return f"❌ 未知的 LangChain 工具: {tool_name}"
+
+
+def extract_json(text: str) -> str:
+    """从文本中提取 JSON"""
+    if "```json" in text:
+        return text.split("```json")[1].split("```")[0].strip()
+    elif "```" in text:
+        return text.split("```")[1].split("```")[0].strip()
+    return text.strip()
+
+
+def _format_mcp_tool_result(tool_name: str, mcp_result: dict) -> str:
+    """
+    格式化 MCP 工具结果
+    
+    Args:
+        tool_name: 工具名称
+        mcp_result: MCP 工具调用结果
+    
+    Returns:
+        格式化后的响应字符串
+    """
+    # 对于内置工具，mcp_result 本身就是结果
+    # 对于 MCP 工具，mcp_result 包含 result 字段
+    if "result" in mcp_result:
+        result = mcp_result.get("result", {})
+    else:
+        result = mcp_result
+    
+    if tool_name == "fs_list":
+        # 格式化文件列表结果
+        if isinstance(result, dict):
+            total_files = result.get("total_files", 0)
+            files = result.get("files", [])
+            path = result.get("path", ".")
+            pattern = result.get("pattern", "*")
+            
+            response = f"✅ 文件列表查询成功\n\n"
+            response += f"📂 目录: {path}\n"
+            response += f"🔍 模式: {pattern}\n"
+            response += f"📊 找到 {total_files} 个文件\n\n"
+            
+            if files:
+                response += "文件列表:\n"
+                response += "─" * 80 + "\n"
+                for f in files[:20]:  # 最多显示20个文件
+                    response += f"📄 {f.get('name', '')}\n"
+                    if f.get('size_human'):
+                        response += f"   大小: {f['size_human']}\n"
+                    if f.get('modified'):
+                        response += f"   修改: {f['modified']}\n"
+                    response += "\n"
+                
+                if total_files > 20:
+                    response += f"... 还有 {total_files - 20} 个文件\n"
+                
+                response += "─" * 80
+            else:
+                response += "📭 没有找到匹配的文件"
+            
+            return response
+        else:
+            return f"✅ 工具执行成功\n\n结果: {result}"
+    
+    elif tool_name == "fs_read":
+        # 格式化文件读取结果
+        if isinstance(result, dict):
+            content = result.get("content", "")
+            size = result.get("size", 0)
+            lines = result.get("lines", 0)
+            path = result.get("path", "")
+            
+            response = f"✅ 文件读取成功\n\n"
+            response += f"📄 文件: {path}\n"
+            response += f"📊 大小: {size} 字节\n"
+            response += f"📏 行数: {lines}\n\n"
+            response += "内容:\n"
+            response += "─" * 80 + "\n"
+            
+            # 限制输出长度
+            if len(content) > 2000:
+                response += content[:2000] + "\n\n... (内容太长，已截断)\n"
+            else:
+                response += content + "\n"
+            
+            response += "─" * 80
+            return response
+        else:
+            return f"✅ 文件读取成功\n\n内容:\n{result}"
+    
+    elif tool_name == "fs_search":
+        # 格式化文件搜索结果
+        if isinstance(result, dict):
+            total = result.get("total", 0)
+            matches = result.get("matches", [])
+            
+            response = f"✅ 文件搜索完成\n\n"
+            response += f"🔍 找到 {total} 个匹配文件\n\n"
+            
+            if matches:
+                response += "匹配结果:\n"
+                response += "─" * 80 + "\n"
+                for match in matches[:15]:  # 最多显示15个结果
+                    response += f"📝 {match.get('name', '')}\n"
+                    if match.get('size_human'):
+                        response += f"   大小: {match['size_human']}\n"
+                    if match.get('content_matched'):
+                        response += f"   内容匹配: 是\n"
+                    response += "\n"
+                
+                if total > 15:
+                    response += f"... 还有 {total - 15} 个结果\n"
+                
+                response += "─" * 80
+            else:
+                response += "📭 没有找到匹配的文件"
+            
+            return response
+        else:
+            return f"✅ 搜索完成\n\n结果: {result}"
+    
+    else:
+        # 其他工具，简单格式化
+        if isinstance(result, dict):
+            return f"✅ {tool_name} 执行成功\n\n结果:\n{json.dumps(result, ensure_ascii=False, indent=2)}"
+        else:
+            return f"✅ {tool_name} 执行成功\n\n结果: {result}"
+
+
+def simple_tool_calling_node(state: dict, enable_streaming: bool = True) -> dict:
+    """
+    简化版工具调用节点 - 动态工具列表，零硬编码
+    使用 LLM 选择工具，然后自动分发调用
+
+    Args:
+        state: 当前状态（字典格式）
         enable_streaming: 是否启用流式输出（问答时使用）
     """
-    user_input = state["user_input"]
+    from src.mcp.mcp_manager import mcp_manager
+
+    user_input = state.get("user_input", "")
 
     print(f"\n[工具选择] 分析用户意图...")
+
+    # 动态获取所有可用工具
+    available_tools = mcp_manager.list_available_tools()
+
+    # 自动生成工具文档
+    tools_doc = _generate_tools_documentation(available_tools)
 
     # 让 LLM 选择工具和参数
     prompt = f"""你是一个工具选择助手。根据用户输入，选择合适的工具并提取参数。
 
 今天是: {datetime.now().strftime("%Y-%m-%d")}
 
-可用工具:
-1. add_todo - 添加待办事项
-   参数: date (YYYY-MM-DD), time (HH:MM, 可选), content (字符串)
-
-2. query_todo - 查询待办事项
-   参数: type (today/date/range/search), date (可选), start_date (可选), end_date (可选), keyword (可选)
-
-3. generate_commit - 生成Git commit消息（仅生成，不提交）
-   参数: 无（自动分析git diff）
-   适用场景: "生成commit日志"、"生成commit消息"、"帮我写commit message"
-
-4. auto_commit - 自动执行 Git 提交流程
-   参数: 无（自动执行 git add -> 生成消息 -> git commit）
-   适用场景: "提交代码"、"自动提交"、"一键提交"
-
-5. full_git_workflow - 完整的 Git 工作流
-   参数: 无（自动执行 git pull -> add -> commit -> push）
-   适用场景: "同步并提交"、"提交并推送"、"一键同步"、"完整提交流程"
-
-6. git_pull - 拉取远程代码
-   参数: 无
-   适用场景: "拉取代码"、"git pull"、"更新代码"
-
-7. git_push - 推送到远程
-   参数: 无（自动识别当前分支）
-   适用场景: "推送代码"、"git push"、"上传代码"
-
-8. code_review - 代码审查
-   参数: 无（自动分析git diff）
-   适用场景: "代码审查"、"code review"、"检查代码"、"review代码"、"对当前代码进行code-review"
-
-9. data_conversion - 数据格式转换
-   参数: operation (convert/validate/beautify), source_format (json/yaml/csv/xml/auto), target_format (可选)
-   适用场景: "@data.json 转换为CSV"、"验证JSON格式"、"美化JSON"
-   注意: 需要用户使用 @ 引用文件
-
-10. environment_diagnostic - 环境诊断
-    参数: 无
-    适用场景: "检查开发环境"、"诊断环境"、"环境检测"
-
-11. get_stock_info - 获取股票实时信息
-    参数: stock_code (股票代码或名称)
-    适用场景: "获取XX股票价格"、"查询XX股价"、"XX股票最新价格"、"XX股票信息"
-
-12. terminal_command - 执行终端命令
-   参数: 无（自动生成命令）
-   适用场景: 
-   - "列出当前目录下的json文件"、"ls *.json"
-   - "查看Python版本"、"python --version"
-   - "显示当前路径"、"pwd"
-   - "创建文件夹"、"mkdir xxx"
-   - "删除文件"、"rm xxx"
-   - "查看文件内容"、"cat xxx"
-   - 任何可以用终端命令完成的操作
-
-13. none - 不需要工具（普通问答）
+{tools_doc}
 
 用户输入: {user_input}
 
@@ -208,18 +390,6 @@ def simple_tool_calling_node(state: AgentState, enable_streaming: bool = True) -
 
 注意：
 - 将相对日期（今天、明天等）转换为具体日期
-- Git 工作流选择规则：
-  * "同步并提交"、"提交并推送"、"一键同步"、"完整提交" → full_git_workflow（5步骤）
-  * "提交代码"、"自动提交"、"一键提交" → auto_commit（3步骤，不push）
-  * "拉取代码"、"git pull"、"更新代码" → git_pull（单独pull）
-  * "推送代码"、"git push"、"上传代码" → git_push（单独push）
-  * "生成commit日志"、"生成commit消息"（不提交） → generate_commit
-- 如果用户提到"code review"、"代码审查"、"检查代码"、"review"，优先选择 code_review
-- 如果用户使用 @ 引用了文件并要求"转换"、"验证"、"美化"，选择 data_conversion
-- 如果用户要求"检查环境"、"诊断环境"、"环境检测"，选择 environment_diagnostic
-- 如果用户要求查询股票信息（"获取XX价格"、"XX股价"、"XX股票"、"股票信息"），选择 get_stock_info
-- 如果用户要求执行系统操作（列出文件、查看版本、创建删除文件等），选择 terminal_command
-- 终端命令的关键词：列出、查看、显示、创建、删除、运行、执行、ls、cat、mkdir、rm、pwd、python、node等
 - 如果无法判断，返回 {{"tool": "none", "args": {{}}}}
 """
 
@@ -228,114 +398,74 @@ def simple_tool_calling_node(state: AgentState, enable_streaming: bool = True) -
         response_text = result.content.strip()
 
         # 提取 JSON
-        if "```json" in response_text:
-            response_text = response_text.split("```json")[1].split("```")[0].strip()
-        elif "```" in response_text:
-            response_text = response_text.split("```")[1].split("```")[0].strip()
-
+        response_text = extract_json(response_text)
         tool_choice = json.loads(response_text)
+
         tool_name = tool_choice.get("tool", "none")
         tool_args = tool_choice.get("args", {})
 
         print(f"[工具选择] 选择工具: {tool_name}")
-        print(f"[工具选择] 参数: {tool_args}")
+        if tool_args:
+            print(f"[工具选择] 参数: {tool_args}")
 
-        # 调用工具
-        if tool_name == "add_todo":
-            result_text = add_todo_tool.func(json.dumps(tool_args, ensure_ascii=False))
-            return {
-                "intent": "add_todo",
-                "response": result_text
-            }
-
-        elif tool_name == "query_todo":
-            result_text = query_todo_tool.func(json.dumps(tool_args, ensure_ascii=False))
-            return {
-                "intent": "query_todo",
-                "response": result_text
-            }
-
-        elif tool_name == "generate_commit":
-            result_text = generate_commit_tool.func("")
-            return {
-                "intent": "git_commit",
-                "response": result_text
-            }
-
-        elif tool_name == "auto_commit":
-            # 自动提交：3步骤工作流（add -> 生成消息 -> commit）
-            return {
-                "intent": "auto_commit",
-                "response": ""  # 由工作流节点处理
-            }
-
-        elif tool_name == "full_git_workflow":
-            # 完整 Git 工作流：5步骤（pull -> add -> 生成消息 -> commit -> push）
-            return {
-                "intent": "full_git_workflow",
-                "response": ""  # 由工作流节点处理
-            }
-
-        elif tool_name == "git_pull":
-            result_text = git_pull_tool.func("")
-            return {
-                "intent": "git_pull",
-                "response": result_text
-            }
-
-        elif tool_name == "git_push":
-            result_text = git_push_tool.func("")
-            return {
-                "intent": "git_push",
-                "response": result_text
-            }
-
-        elif tool_name == "code_review":
-            result_text = code_review_tool.func("")
-            return {
-                "intent": "code_review",
-                "response": result_text
-            }
-
-        elif tool_name == "data_conversion":
-            # 数据转换需要传递到专门的节点处理
-            return {
-                "intent": "data_conversion",
-                "data_conversion_type": tool_args.get("operation", "convert"),
-                "source_format": tool_args.get("source_format", "auto"),
-                "target_format": tool_args.get("target_format", "json"),
-                "response": ""  # 由节点处理
-            }
-
-        elif tool_name == "environment_diagnostic":
-            # 环境诊断需要传递到专门的节点处理
-            return {
-                "intent": "environment_diagnostic",
-                "response": ""  # 由节点处理
-            }
-
-        elif tool_name == "get_stock_info":
-            # 股票查询需要传递到MCP工具处理
-            return {
-                "intent": "mcp_tool_call",
-                "mcp_tool": "get_stock_info",
-                "mcp_params": tool_args,
-                "response": ""  # 由MCP节点处理
-            }
-
-        elif tool_name == "terminal_command":
-            # 终端命令需要传递到命令生成和执行节点
-            return {
-                "intent": "terminal_command",
-                "response": ""  # 由后续节点处理
-            }
-
-        else:
-            # 普通问答，需要继续处理
+        # 如果不需要工具，返回问答意图
+        if tool_name == "none":
             return {
                 "intent": "question",
                 "response": ""  # 需要后续节点生成回答
             }
+
+        # 推断意图
+        intent = _infer_intent_from_tool(tool_name)
+
+        # 分类处理工具调用
+        # 1. LangChain 工具（已封装的内置工具）
+        if tool_name in ["add_todo", "query_todo", "generate_commit", "auto_commit",
+                         "git_pull", "git_push", "code_review"]:
+            result_text = _call_langchain_tool(tool_name, tool_args)
+            return {
+                "intent": intent,
+                "response": result_text
+            }
+
+        # 2. 需要延迟处理的工具（由后续节点处理）
+        elif tool_name in ["full_git_workflow", "data_conversion",
+                           "environment_diagnostic", "terminal_command"]:
+            response = {
+                "intent": intent,
+                "response": ""  # 由后续节点处理
+            }
+
+            # 传递额外参数（如果需要）
+            if tool_name == "data_conversion":
+                response.update({
+                    "data_conversion_type": tool_args.get("operation", "convert"),
+                    "source_format": tool_args.get("source_format", "auto"),
+                    "target_format": tool_args.get("target_format", "json"),
+                })
+
+            return response
+
+        # 3. MCP 工具（统一调用接口）- 零分支！
+        else:
+            # 直接调用 MCPManager，自动分发
+            mcp_result = mcp_manager.call_tool(tool_name, **tool_args)
+
+            # 检查结果是否成功（内置工具直接返回结果，MCP工具返回包装结果）
+            if isinstance(mcp_result, dict) and mcp_result.get("success", True):
+                # 直接格式化结果，避免工作流路由问题
+                formatted_response = _format_mcp_tool_result(tool_name, mcp_result)
+                return {
+                    "intent": "mcp_tool_call",
+                    "mcp_tool": tool_name,
+                    "response": formatted_response
+                }
+            else:
+                error_msg = mcp_result.get('error', '未知错误') if isinstance(mcp_result, dict) else str(mcp_result)
+                return {
+                    "intent": "error",
+                    "response": f"❌ 工具调用失败: {error_msg}"
+                }
 
     except Exception as e:
         print(f"[工具选择] ❌ 错误: {str(e)}")

@@ -41,132 +41,33 @@ import sys
 import os
 import argparse
 from pathlib import Path
+from typing import Optional
 
 # 添加项目目录到Python路径（支持从任何位置运行）
 SCRIPT_DIR = Path(__file__).parent.absolute()
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from src.core.agent_config import AgentState
+from src.core.agent_types import create_initial_state
+from src.core.agent_config import AgentStateDict
 from src.core.agent_memory import memory
 from src.core.agent_workflow import build_agent
 from src.ui.agent_ui import print_header, handle_special_commands
 from src.ui.file_reference_parser import update_working_directory
-from src.ui.interactive_file_selector import (
-    interactive_file_select,
-    quick_file_select,
-    update_selector_working_directory,
-)
+from src.ui.interactive_file_selector import update_selector_working_directory
+from src.ui.input_handlers import smart_input_handler
 
-# 尝试导入智能文件输入（IDE 风格）
+# 尝试导入智能文件输入（IDE 风格）- 用于目录更新
 try:
-    from src.ui.smart_file_input import (
-        get_smart_input,
-        update_smart_input_directory,
-        check_prompt_toolkit_available,
-    )
-    USE_SMART_INPUT = True
+    from src.ui.smart_file_input import update_smart_input_directory
+    USE_SMART_INPUT: bool = True
 except ImportError:
-    USE_SMART_INPUT = False
+    USE_SMART_INPUT: bool = False
 
-__version__ = "1.0.0"
-
-
-def smart_input_handler(prompt: str = "👤 你: ") -> str:
-    """智能输入处理器，支持 @ 文件选择"""
-    # 如果可用，优先使用 IDE 风格的智能输入
-    if USE_SMART_INPUT and check_prompt_toolkit_available():
-        try:
-            return get_smart_input(prompt)
-        except (KeyboardInterrupt, EOFError):
-            print("\n\n👋 检测到中断信号，退出程序...\n")
-            sys.exit(0)
-        except Exception as e:
-            # 出错则降级到传统模式
-            pass
-    
-    # 传统模式
-    while True:
-        try:
-            user_input = input(prompt).strip()
-
-            # 检查是否只输入了 @
-            if user_input == "@":
-                print("\n🎯 启动文件选择器...")
-                selected_file = interactive_file_select("选择要引用的文件")
-                if selected_file:
-                    # 重新提示用户输入，并预填充选择的文件
-                    print(f"\n✅ 已选择文件: @{selected_file}")
-                    new_prompt = f"👤 你 (已选择 @{selected_file}): "
-                    additional_input = input(new_prompt).strip()
-                    if additional_input:
-                        return f"@{selected_file} {additional_input}"
-                    else:
-                        return f"读取 @{selected_file}"
-                else:
-                    print("🔄 继续输入...")
-                    continue
-
-            # 检查是否以 @ 开头
-            elif user_input.startswith("@") and len(user_input) > 1:
-                # 提取 @ 后的部分作为搜索条件
-                search_term = user_input[1:].split()[0]  # 取第一个词作为文件名
-                remaining_text = user_input[len(search_term) + 1 :].strip()
-
-                # 如果已经有后续文本（用户输入了完整命令），直接返回
-                if remaining_text:
-                    return user_input
-                
-                # 没有后续文本，需要处理
-                # 如果搜索词看起来不完整（短），提供快速选择
-                if len(search_term) <= 10 and not any(c in search_term for c in "./\\"):
-                    print(f"\n🔍 搜索文件: '{search_term}'...")
-                    selected_file = quick_file_select(search_term)
-                    if selected_file:
-                        # 选择文件后，重新提示完整输入
-                        print(f"\n✅ 已选择: @{selected_file}")
-                        print(f"💡 请继续输入操作，例如: 总结内容、翻译、有哪些配置项\n")
-                        # 重新获取用户输入
-                        new_input = input(prompt).strip()
-                        if new_input:
-                            # 如果用户重新输入了完整命令，直接返回
-                            if new_input.startswith("@"):
-                                return new_input
-                            # 如果用户只输入了操作，自动补全文件名
-                            else:
-                                return f"@{selected_file} {new_input}"
-                        # 如果用户没输入，继续循环
-                        continue
-                    else:
-                        print("🔄 继续输入...")
-                        continue
-                
-                # 如果是完整文件名（超过10个字符），也提示用户输入操作
-                else:
-                    # 提示用户继续输入操作
-                    print(f"\n✅ 检测到文件: @{search_term}")
-                    print(f"💡 请继续输入操作，例如: 总结内容、翻译、有哪些配置项\n")
-                    # 重新获取用户输入
-                    new_input = input(prompt).strip()
-                    if new_input:
-                        # 如果用户重新输入了完整命令，直接返回
-                        if new_input.startswith("@"):
-                            return new_input
-                        # 如果用户只输入了操作，自动补全文件名
-                        else:
-                            return f"@{search_term} {new_input}"
-                    # 如果用户没输入，继续循环
-                    continue
-
-            # 普通输入，直接返回
-            return user_input
-
-        except (KeyboardInterrupt, EOFError):
-            print("\n\n👋 检测到中断信号，退出程序...\n")
-            sys.exit(0)
+__version__: str = "1.0.0"
 
 
-def parse_arguments():
+def parse_arguments() -> argparse.Namespace:
     """解析命令行参数"""
 
     # 创建详细的帮助信息
@@ -261,42 +162,10 @@ def execute_single_command(command: str, quiet: bool = False) -> int:
             print(f"\n🤖 执行命令: {command}\n")
 
         # 构建初始状态
-        initial_state: AgentState = {
-            "user_input": command,
-            "intent": "unknown",
-            "command": "",
-            "commands": [],
-            "command_output": "",
-            "command_outputs": [],
-            "response": "",
-            "error": "",
-            "needs_file_creation": False,
-            "file_path": "",
-            "file_content": "",
-            "chat_history": [],
-            "mcp_tool": "",
-            "mcp_params": {},
-            "mcp_result": "",
-            "original_input": "",
-            "referenced_files": [],
-            "file_contents": {},
-            # 待办字段仅在需要时由节点填充，不预先初始化
-            "todo_action": "",
-            "todo_date": "",
-            "todo_time": "",
-            "todo_content": "",
-            "todo_result": "",
-            # 数据转换字段
-            "data_conversion_type": "",
-            "source_format": "",
-            "target_format": "",
-            "conversion_result": "",
-            # 环境诊断字段
-            "diagnostic_result": "",
-        }
+        initial_state = create_initial_state(command)
 
-        # 执行工作流
-        result = agent.invoke(initial_state)
+        # 执行工作流（需要转换为字典格式）
+        result = agent.invoke(initial_state.to_dict())
 
         # 显示结果
         # 注意：问答节点（question_answerer）已经流式打印了，不需要重复显示
@@ -326,7 +195,7 @@ def execute_single_command(command: str, quiet: bool = False) -> int:
         return 1
 
 
-def interactive_mode(quiet: bool = False, no_memory: bool = False):
+def interactive_mode(quiet: bool = False, no_memory: bool = False) -> None:
     """
     交互模式
 
@@ -362,39 +231,10 @@ def interactive_mode(quiet: bool = False, no_memory: bool = False):
             print()  # 空行
 
             # 构建初始状态
-            initial_state: AgentState = {
-                "user_input": user_input,
-                "intent": "unknown",
-                "command": "",
-                "commands": [],
-                "command_output": "",
-                "command_outputs": [],
-                "response": "",
-                "error": "",
-                "needs_file_creation": False,
-                "file_path": "",
-                "file_content": "",
-                "chat_history": [],
-                "mcp_tool": "",
-                "mcp_params": {},
-                "mcp_result": "",
-                "original_input": "",
-                "referenced_files": [],
-                "file_contents": {},
-                "todo_action": "",
-                "todo_date": "",
-                "todo_time": "",
-                "todo_content": "",
-                "todo_result": "",
-                "data_conversion_type": "",
-                "source_format": "",
-                "target_format": "",
-                "conversion_result": "",
-                "diagnostic_result": "",
-            }
+            initial_state = create_initial_state(user_input)
 
-            # 执行工作流
-            result = agent.invoke(initial_state)
+            # 执行工作流（需要转换为字典格式）
+            result = agent.invoke(initial_state.to_dict())
 
             # 显示响应
             # 注意：问答节点已经流式打印，其他类型需要格式化输出
@@ -422,7 +262,7 @@ def interactive_mode(quiet: bool = False, no_memory: bool = False):
             print("请重试或输入 'exit' 退出\n")
 
 
-def main():
+def main() -> int:
     """主函数"""
     args = parse_arguments()
 

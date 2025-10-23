@@ -6,6 +6,48 @@ AI智能体配置模块
 from typing import TypedDict, Literal, Optional
 
 # ============================================
+# 重新导出新的类型定义
+# ============================================
+# 新的数据类定义在 agent_types.py 中
+# 这里保留 TypedDict 定义以确保向后兼容
+from src.core.agent_types import (
+    Intent,
+    ExecutionContext,
+    CommandResult,
+    FileContext,
+    MCPContext,
+    TodoData,
+    DataConversionData,
+    GitData,
+    AgentState as AgentStateDataClass,
+    AgentStateDict,
+    create_initial_state,
+)
+
+# 向后兼容的导出
+__all__ = [
+    "Intent",
+    "ExecutionContext",
+    "CommandResult",
+    "FileContext",
+    "MCPContext",
+    "TodoData",
+    "DataConversionData",
+    "GitData",
+    "AgentState",
+    "AgentStateDict",
+    "create_initial_state",
+    "LLM_CONFIG",
+    "LLM_CONFIG2",
+    "DEFAULT_HEADERS",
+    "WORKING_DIRECTORY",
+    "DANGEROUS_COMMANDS",
+    "COMMAND_TIMEOUT",
+    "MAX_CONVERSATION_HISTORY",
+    "MAX_COMMAND_HISTORY",
+]
+
+# ============================================
 # LLM配置
 # ============================================
 
@@ -60,51 +102,7 @@ MAX_COMMAND_HISTORY = 20
 # 状态类型定义
 # ============================================
 
-class AgentState(TypedDict):
-    """智能体状态"""
-    user_input: str
-    intent: Literal["terminal_command", "multi_step_command", "mcp_tool_call", "git_commit", "auto_commit", "full_git_workflow", "git_pull", "git_push", "question", "add_todo", "query_todo", "data_conversion", "environment_diagnostic", "unknown"]
-    command: str
-    commands: list
-    command_output: str
-    command_outputs: list
-    response: str
-    error: str
-    needs_file_creation: bool
-    file_path: str
-    file_content: str
-    chat_history: list
-    # MCP相关字段
-    mcp_tool: str
-    mcp_params: dict
-    mcp_result: str
-    # 文件引用相关字段
-    original_input: str
-    referenced_files: list
-    file_contents: dict
-    # 待办事项相关字段
-    todo_action: str
-    todo_date: str
-    todo_time: str
-    todo_content: str
-    todo_result: str
-    # 数据转换相关字段
-    data_conversion_type: str
-    source_format: str
-    target_format: str
-    conversion_result: str
-    # 环境诊断相关字段
-    diagnostic_result: str
-    # Git 自动提交相关字段
-    git_add_success: bool
-    git_files_count: int
-    git_commit_message_generated: bool
-    git_commit_message: str
-    git_file_stats: str
-    git_commit_success: bool
-    git_commit_hash: str
-    # Git pull/push 相关字段
-    git_pull_success: bool
-    git_pull_has_updates: bool
-    git_push_success: bool
-    git_push_branch: str
+# 向后兼容：AgentState 现在指向 AgentStateDict（用于 LangGraph）
+# 新代码应该使用 AgentStateDataClass 和 create_initial_state()
+AgentState = AgentStateDict
+

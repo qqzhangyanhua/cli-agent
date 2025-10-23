@@ -33,7 +33,7 @@ from src.mcp.agent_tool_calling import simple_tool_calling_node
 def route_by_intent(state: AgentState) -> str:
     """
     根据意图路由
-    待办/git_commit/code_review 相关已经在 tool_calling 节点完成，直接结束
+    待办/git_commit/code_review/mcp_tool_call 相关已经在 tool_calling 节点完成，直接结束
     auto_commit 需要走 Git 提交工作流（3步骤）
     full_git_workflow 需要走完整 Git 工作流（5步骤：pull -> add -> commit -> push）
     git_pull/git_push 单独处理
@@ -41,7 +41,7 @@ def route_by_intent(state: AgentState) -> str:
     """
     intent = state["intent"]
 
-    if intent in ["add_todo", "query_todo", "git_commit", "code_review", "git_pull", "git_push"]:
+    if intent in ["add_todo", "query_todo", "git_commit", "code_review", "git_pull", "git_push", "mcp_tool_call"]:
         # 工具调用节点已完成处理，直接结束
         return "end"
     elif intent == "auto_commit":
@@ -60,8 +60,6 @@ def route_by_intent(state: AgentState) -> str:
         return "generate_command"
     elif intent == "multi_step_command":
         return "plan_steps"
-    elif intent == "mcp_tool_call":
-        return "plan_mcp_tool"
     elif intent == "question":
         # 如果 response 已生成（普通问答），直接结束
         if state.get("response"):

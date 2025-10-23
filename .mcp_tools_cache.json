@@ -1,0 +1,76 @@
+{
+  "timestamp": "2025-10-23T17:21:25.967478",
+  "tools": {
+    "mcp-stock": {
+      "get-stock-info": {
+        "type": "mcp",
+        "server": "mcp-stock",
+        "method": "get-stock-info",
+        "description": "获取单个股票的实时当前信息，包括当前价格、涨跌幅、成交量等实时数据",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "stock_code": {
+              "type": "string",
+              "description": "股票代码或名称 (例如: 600519 或 贵州茅台)"
+            }
+          },
+          "required": [
+            "stock_code"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      "get-stock-history": {
+        "type": "mcp",
+        "server": "mcp-stock",
+        "method": "get-stock-history",
+        "description": "获取单个股票的历史数据、过去价格、K线数据，支持日K、周K、月K线，用于分析股票过去的表现",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "stock_code": {
+              "type": "string",
+              "description": "股票代码或名称 (例如: 600519 或 贵州茅台)"
+            },
+            "period": {
+              "type": "string",
+              "enum": [
+                "1d",
+                "1w",
+                "1m"
+              ],
+              "default": "1d",
+              "description": "时间周期: 1d=日K线, 1w=周K线, 1m=月K线"
+            },
+            "days": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 500,
+              "default": 30,
+              "description": "获取天数 (1-500天)"
+            }
+          },
+          "required": [
+            "stock_code"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      "get-market-index": {
+        "type": "mcp",
+        "server": "mcp-stock",
+        "method": "get-market-index",
+        "description": "获取大盘指数概览信息，包括上证指数和深证成指等主要指数的实时数据",
+        "parameters": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      }
+    }
+  }
+}
