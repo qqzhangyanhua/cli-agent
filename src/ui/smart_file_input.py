@@ -258,14 +258,67 @@ class SmartFileInput:
             # 使用 prompt_toolkit
             self.completer = FileCompleter(str(self.working_dir))
             
-            # 历史记录文件
+            # 历史记录文件 - 避免在执行目录创建文件
             if history_file is None:
-                history_file = str(self.working_dir / '.dnm_history')
+                history_file = self._get_history_file_path()
             self.history = FileHistory(history_file)
         else:
             self.completer = None
             self.history = None
     
+    def _get_history_file_path(self) -> str:
+        """
+        获取历史文件路径，避免在执行目录创建文件
+        
+        优先级：
+        1. 项目根目录（如果能找到）
+        2. 用户配置目录 ~/.dnm/
+        
+        Returns:
+            历史文件的完整路径
+        """
+        history_filename = ".dnm_history"
+        
+        # 尝试找到项目根目录
+        try:
+            import sys
+            project_root = None
+            
+            # 方法1：通过当前文件定位
+            try:
+                current_file = Path(__file__).parent.parent  # src/ui -> src -> project_root
+                if (current_file / "dnm").exists() or (current_file / "ai-agent").exists():
+                    project_root = current_file
+            except:
+                pass
+            
+            # 方法2：通过sys.path[0]定位
+            if not project_root and sys.path:
+                potential_root = Path(sys.path[0])
+                if (potential_root / "dnm").exists() or (potential_root / "ai-agent").exists():
+                    project_root = potential_root
+            
+            # 方法3：向上查找包含dnm或ai-agent的目录
+            if not project_root:
+                current = Path.cwd()
+                for parent in [current] + list(current.parents):
+                    if (parent / "dnm").exists() or (parent / "ai-agent").exists():
+                        project_root = parent
+                        break
+            
+            # 如果找到项目根目录，使用项目根目录
+            if project_root:
+                return str(project_root / history_filename)
+        
+        except Exception:
+            # 静默处理错误
+            pass
+        
+        # 降级到用户配置目录
+        config_dir = Path.home() / ".dnm"
+        config_dir.mkdir(exist_ok=True)
+        return str(config_dir / history_filename)
+
     def get_input(self, prompt_text: str = "👤 你: ") -> str:
         """获取用户输入（带自动补全）"""
         if not HAS_PROMPT_TOOLKIT:

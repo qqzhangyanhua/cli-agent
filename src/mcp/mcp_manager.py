@@ -18,8 +18,6 @@ from src.core.agent_metrics import get_metrics_collector
 class MCPManager:
     """MCP服务器管理器 - 统一的工具注册表架构 + 缓存优化"""
 
-    # 缓存文件路径
-    CACHE_FILE = ".mcp_tools_cache.json"
     # 缓存有效期（小时）
     CACHE_TTL_HOURS = 24
 
@@ -32,25 +30,154 @@ class MCPManager:
         # 集成性能监控
         self.metrics = get_metrics_collector()
 
+        # 设置缓存文件路径（避免在执行目录创建文件）
+        self.cache_file = self._get_cache_file_path()
+
         # 注册内置文件系统工具
         self._register_filesystem_tools()
 
         # 注册 LangChain 工具（待办、Git等）
         self._register_langchain_tools()
 
-        # 加载MCP配置
-        if config_path and Path(config_path).exists():
-            self.load_config(config_path)
+        # 加载MCP配置 - 支持项目根目录定位
+        resolved_config_path = self._resolve_config_path(config_path)
+        if resolved_config_path and Path(resolved_config_path).exists():
+            self.load_config(resolved_config_path)
 
             # 先加载缓存（立即返回）
-            self._load_tools_from_cache()
+            cache_loaded = self._load_tools_from_cache()
 
-            # 后台异步刷新工具列表
-            threading.Thread(
-                target=self._discover_all_mcp_tools_async,
-                daemon=True,
-                name="MCP-Tool-Discovery"
-            ).start()
+            # 如果缓存为空或过期，同步发现工具（确保第一次执行成功）
+            if not cache_loaded:
+                print("[MCP缓存] 首次发现MCP工具...")
+                self._discover_all_mcp_tools_parallel()
+                self._save_tools_to_cache()
+            else:
+                # 后台异步刷新工具列表
+                threading.Thread(
+                    target=self._discover_all_mcp_tools_async,
+                    daemon=True,
+                    name="MCP-Tool-Discovery"
+                ).start()
+
+    def _get_cache_file_path(self) -> str:
+        """
+        获取缓存文件路径，避免在执行目录创建文件
+        
+        优先级：
+        1. 项目根目录（如果能找到）
+        2. 用户配置目录 ~/.dnm/
+        
+        Returns:
+            缓存文件的完整路径
+        """
+        cache_filename = ".mcp_tools_cache.json"
+        
+        # 尝试找到项目根目录
+        try:
+            import sys
+            project_root = None
+            
+            # 方法1：通过__file__定位
+            try:
+                current_file = Path(__file__).parent.parent.parent  # src/mcp -> src -> project_root
+                if (current_file / "dnm").exists() or (current_file / "ai-agent").exists():
+                    project_root = current_file
+            except:
+                pass
+            
+            # 方法2：通过sys.path[0]定位
+            if not project_root and sys.path:
+                potential_root = Path(sys.path[0])
+                if (potential_root / "dnm").exists() or (potential_root / "ai-agent").exists():
+                    project_root = potential_root
+            
+            # 方法3：向上查找包含dnm或ai-agent的目录
+            if not project_root:
+                current = Path.cwd()
+                for parent in [current] + list(current.parents):
+                    if (parent / "dnm").exists() or (parent / "ai-agent").exists():
+                        project_root = parent
+                        break
+            
+            # 如果找到项目根目录，使用项目根目录
+            if project_root:
+                return str(project_root / cache_filename)
+        
+        except Exception:
+            # 静默处理错误
+            pass
+        
+        # 降级到用户配置目录
+        config_dir = Path.home() / ".dnm"
+        config_dir.mkdir(exist_ok=True)
+        return str(config_dir / cache_filename)
+
+    def _resolve_config_path(self, config_path: Optional[str]) -> Optional[str]:
+        """
+        智能解析MCP配置文件路径
+        
+        优先级：
+        1. 绝对路径直接使用
+        2. 当前工作目录下查找
+        3. 项目根目录下查找（通过dnm脚本位置定位）
+        
+        Args:
+            config_path: 配置文件路径
+            
+        Returns:
+            解析后的配置文件路径，如果找不到返回None
+        """
+        if not config_path:
+            return None
+            
+        # 如果是绝对路径，直接返回
+        if Path(config_path).is_absolute():
+            return config_path if Path(config_path).exists() else None
+        
+        # 1. 尝试当前工作目录
+        current_dir_path = Path.cwd() / config_path
+        if current_dir_path.exists():
+            return str(current_dir_path)
+        
+        # 2. 尝试项目根目录（通过dnm脚本位置定位）
+        try:
+            # 找到dnm脚本的位置
+            import sys
+            script_dir = None
+            
+            # 方法1：通过__file__定位（如果在模块内）
+            try:
+                current_file = Path(__file__).parent.parent.parent  # src/mcp -> src -> project_root
+                script_dir = current_file
+            except:
+                pass
+            
+            # 方法2：通过sys.path[0]定位
+            if not script_dir and sys.path:
+                potential_root = Path(sys.path[0])
+                if (potential_root / "dnm").exists() or (potential_root / "ai-agent").exists():
+                    script_dir = potential_root
+            
+            # 方法3：向上查找包含dnm或ai-agent的目录
+            if not script_dir:
+                current = Path.cwd()
+                for parent in [current] + list(current.parents):
+                    if (parent / "dnm").exists() or (parent / "ai-agent").exists():
+                        script_dir = parent
+                        break
+            
+            if script_dir:
+                project_config_path = script_dir / config_path
+                if project_config_path.exists():
+                    return str(project_config_path)
+        
+        except Exception as e:
+            # 静默处理错误，不影响主流程
+            pass
+        
+        # 如果都找不到，返回原路径（让调用者处理）
+        return config_path
 
     def load_config(self, config_path: str):
         """从JSON文件加载MCP配置"""
@@ -208,21 +335,26 @@ class MCPManager:
             "parameters": {"type": "object", "properties": {}, "required": []}
         }
 
-    def _load_tools_from_cache(self):
-        """从缓存加载MCP工具列表（立即返回，无阻塞）"""
-        if not Path(self.CACHE_FILE).exists():
+    def _load_tools_from_cache(self) -> bool:
+        """
+        从缓存加载MCP工具列表（立即返回，无阻塞）
+        
+        Returns:
+            bool: 是否成功加载了有效的缓存
+        """
+        if not Path(self.cache_file).exists():
             print("[MCP缓存] 缓存文件不存在，将进行首次发现")
-            return
+            return False
 
         try:
-            with open(self.CACHE_FILE, "r", encoding="utf-8") as f:
+            with open(self.cache_file, "r", encoding="utf-8") as f:
                 cache_data = json.load(f)
 
             # 检查缓存有效期
             cache_time = datetime.fromisoformat(cache_data.get("timestamp", "1970-01-01T00:00:00"))
             if datetime.now() - cache_time > timedelta(hours=self.CACHE_TTL_HOURS):
                 print(f"[MCP缓存] 缓存已过期（{self.CACHE_TTL_HOURS}小时），将刷新")
-                return
+                return False
 
             # 加载缓存的工具
             cached_tools = cache_data.get("tools", {})
@@ -238,11 +370,14 @@ class MCPManager:
 
             if loaded_count > 0:
                 print(f"[MCP缓存] ✅ 已从缓存加载 {loaded_count} 个MCP工具")
+                return True
             else:
                 print("[MCP缓存] 缓存为空")
+                return False
 
         except Exception as e:
             print(f"[MCP缓存] ⚠️ 加载缓存失败: {e}")
+            return False
 
     def _save_tools_to_cache(self):
         """保存MCP工具列表到缓存"""
@@ -263,7 +398,7 @@ class MCPManager:
             }
 
             # 写入缓存文件
-            with open(self.CACHE_FILE, "w", encoding="utf-8") as f:
+            with open(self.cache_file, "w", encoding="utf-8") as f:
                 json.dump(cache_data, f, indent=2, ensure_ascii=False)
 
 
