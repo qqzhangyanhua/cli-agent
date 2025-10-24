@@ -303,6 +303,7 @@ def command_generator(state: AgentState) -> dict:
 - "打开当前目录" -> explorer .
 - "打开文件夹" -> explorer .
 - "打开当前文件所在目录" -> explorer .
+- "打开终端" -> start cmd /k "cd /d %cd%"
 - "在新的终端打开当前目录" -> start cmd /k "cd /d %cd%"
 - "用文件管理器打开" -> explorer ."""
     else:
@@ -318,6 +319,7 @@ def command_generator(state: AgentState) -> dict:
 - "打开当前目录" -> open .
 - "打开文件夹" -> open .
 - "打开当前文件所在目录" -> open .
+- "打开终端" -> open -a Terminal .
 - "在新的终端打开当前目录" -> open -a Terminal .
 - "用文件管理器打开" -> open ."""
 
@@ -334,6 +336,7 @@ def command_generator(state: AgentState) -> dict:
 - "打开当前目录" -> 打开工作目录本身 (使用 . )
 - "打开文件夹" -> 打开工作目录本身 (使用 . )
 - "打开当前文件所在目录" -> 打开工作目录本身 (使用 . )
+- "打开终端" -> 在当前工作目录打开新终端 (macOS: open -a Terminal ., Windows: start cmd /k "cd /d %cd%")
 
 **重要**: 
 - 必须生成适合 {os_type} 系统的命令
