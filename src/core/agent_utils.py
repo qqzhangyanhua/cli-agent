@@ -34,10 +34,8 @@ def execute_terminal_command(command: str) -> Dict:
                 "error": f"⚠️ 拒绝执行危险命令: {command}"
             }
     
-    # 确定工作目录 - 如果配置的路径不存在，使用当前目录
-    work_dir = WORKING_DIRECTORY
-    if not os.path.exists(work_dir):
-        work_dir = os.getcwd()
+    # 使用当前实际的工作目录，而不是配置中的固定目录
+    work_dir = os.getcwd()
     
     # Windows 下使用 GBK 编码，其他系统使用 UTF-8
     import platform

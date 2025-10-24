@@ -291,7 +291,7 @@ def command_generator(state: AgentState) -> dict:
     
     # 根据操作系统设置示例
     if os_type == "Windows":
-        examples = """示例（Windows）:
+        examples = """示例(Windows):
 - "列出当前目录的所有文件" -> dir 或 Get-ChildItem
 - "查看Python版本" -> python --version
 - "显示当前路径" -> cd
@@ -301,11 +301,12 @@ def command_generator(state: AgentState) -> dict:
 - "复制文件" -> copy source dest
 - "移动文件" -> move source dest
 - "打开当前目录" -> explorer .
+- "打开文件夹" -> explorer .
 - "打开当前文件所在目录" -> explorer .
 - "在新的终端打开当前目录" -> start cmd /k "cd /d %cd%"
 - "用文件管理器打开" -> explorer ."""
     else:
-        examples = """示例（Unix/Linux/macOS）:
+        examples = """示例(Unix/Linux/macOS):
 - "列出当前目录的所有文件" -> ls -la
 - "查看Python版本" -> python3 --version
 - "显示当前路径" -> pwd
@@ -315,11 +316,12 @@ def command_generator(state: AgentState) -> dict:
 - "复制文件" -> cp source dest
 - "移动文件" -> mv source dest
 - "打开当前目录" -> open .
+- "打开文件夹" -> open .
 - "打开当前文件所在目录" -> open .
 - "在新的终端打开当前目录" -> open -a Terminal .
 - "用文件管理器打开" -> open ."""
 
-    prompt = f"""将用户的自然语言请求转换为终端命令。
+    prompt = f"""将用户的自然语言请求转换为终端命令.
 
 操作系统: {os_type}
 {recent_commands}
@@ -328,10 +330,16 @@ def command_generator(state: AgentState) -> dict:
 
 {examples}
 
+**重要语义区分**: 
+- "打开当前目录" -> 打开工作目录本身 (使用 . )
+- "打开文件夹" -> 打开工作目录本身 (使用 . )
+- "打开当前文件所在目录" -> 打开工作目录本身 (使用 . )
+
 **重要**: 
 - 必须生成适合 {os_type} 系统的命令
-- 只返回命令本身，不要解释
+- 只返回命令本身, 不要解释
 - 不要添加注释或说明
+- 注意区分打开当前目录(.)和父目录(..)的语义
 
 命令:"""
 
