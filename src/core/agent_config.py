@@ -45,6 +45,10 @@ __all__ = [
     "COMMAND_TIMEOUT",
     "MAX_CONVERSATION_HISTORY",
     "MAX_COMMAND_HISTORY",
+    "DAILY_REPORT_TEMPLATES",
+    "DEFAULT_DAILY_REPORT_TEMPLATE", 
+    "DAILY_REPORT_DIR",
+    "AUTO_SAVE_DAILY_REPORT",
 ]
 
 # ============================================
@@ -97,6 +101,22 @@ MAX_CONVERSATION_HISTORY = 10
 
 # 最大命令历史数量
 MAX_COMMAND_HISTORY = 20
+
+# ============================================
+# 日报配置
+# ============================================
+
+# 日报模板类型
+DAILY_REPORT_TEMPLATES = ["standard", "technical", "summary"]
+
+# 默认日报模板
+DEFAULT_DAILY_REPORT_TEMPLATE = "standard"
+
+# 日报保存目录
+DAILY_REPORT_DIR = "daily_reports"
+
+# 是否自动保存日报文件
+AUTO_SAVE_DAILY_REPORT = True
 
 # ============================================
 # 状态类型定义

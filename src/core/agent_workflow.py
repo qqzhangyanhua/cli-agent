@@ -41,7 +41,7 @@ def route_by_intent(state: AgentState) -> str:
     """
     intent = state["intent"]
 
-    if intent in ["add_todo", "query_todo", "git_commit", "code_review", "git_pull", "git_push", "mcp_tool_call", "auto_commit", "start_project", "build_project", "diagnose_project", "stop_project"]:
+    if intent in ["add_todo", "query_todo", "git_commit", "code_review", "git_pull", "git_push", "mcp_tool_call", "auto_commit", "start_project", "build_project", "diagnose_project", "stop_project", "daily_report"]:
         # 工具调用节点已完成处理，直接结束
         return "end"
     elif intent == "full_git_workflow":

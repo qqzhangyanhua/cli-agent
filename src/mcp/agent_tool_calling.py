@@ -16,6 +16,7 @@ from src.tools.git_commit_tools import generate_commit_tool
 from src.tools.code_review_tools import code_review_tool
 from src.tools.auto_commit_tools import auto_commit_tool, git_pull_tool, git_push_tool
 from src.tools.project_manager_tools import project_manager_tools, start_project_tool, build_project_tool, diagnose_project_tool, stop_project_tool
+from src.tools.daily_report_tools import daily_report_tools, generate_daily_report_tool
 
 
 def create_tool_agent():
@@ -47,12 +48,16 @@ def create_tool_agent():
 8. start_project - 智能启动项目（自动检测类型、安装依赖）
 9. build_project - 智能打包项目
 
+📊 日报助手:
+10. generate_daily_report - 生成日报（汇总当天Git提交、命令、交互记录）
+
 请根据用户的输入，判断用户意图并调用合适的工具。
 
 重要规则：
 - 待办事项: "今天18点给XX打电话" → add_todo, "今天有什么要做的" → query_todo
 - 项目管理: "启动项目"/"运行项目" → start_project, "打包项目"/"构建项目" → build_project
 - Git操作: "提交代码" → auto_commit, "生成commit消息" → generate_commit
+- 日报生成: "生成日报"/"今日总结"/"工作报告" → generate_daily_report
 - 一定要将相对日期转换为具体的 YYYY-MM-DD 格式
 - 工具调用的输入必须是合法的 JSON 字符串
 """
@@ -118,6 +123,8 @@ def tool_calling_node(state: AgentState) -> dict:
             intent = "add_todo"
         elif any(t['tool'] == 'query_todo' for t in tool_calls_made):
             intent = "query_todo"
+        elif any(t['tool'] == 'generate_daily_report' for t in tool_calls_made):
+            intent = "daily_report"
         else:
             intent = "question"  # 可能是普通问答
 
@@ -208,6 +215,11 @@ def _get_all_available_tools() -> list:
             "name": "environment_diagnostic",
             "description": "诊断开发环境配置。检查Python版本、Node.js、依赖包、开发工具等环境状态，提供详细的环境诊断报告。",
             "params": []
+        },
+        {
+            "name": "generate_daily_report",
+            "description": "生成日报。汇总当天的Git提交、命令执行、AI交互等活动，自动生成工作日报。当用户说'生成日报'、'今日总结'、'工作报告'时使用。",
+            "params": ["work_dir", "template", "save_file"]
         }
     ]
     
@@ -280,6 +292,7 @@ def _infer_intent_from_tool(tool_name: str) -> str:
         "build_project": "build_project",
         "diagnose_project": "diagnose_project",
         "stop_project": "stop_project",
+        "generate_daily_report": "daily_report",
     }
 
     # 如果在映射表中，返回对应意图
@@ -315,6 +328,7 @@ def _call_langchain_tool(tool_name: str, tool_args: dict) -> str:
         "build_project": build_project_tool,
         "diagnose_project": diagnose_project_tool,
         "stop_project": stop_project_tool,
+        "generate_daily_report": generate_daily_report_tool,
     }
 
     if tool_name in langchain_tools:
@@ -543,7 +557,8 @@ def simple_tool_calling_node(state: dict, enable_streaming: bool = True) -> dict
         # 分类处理工具调用
         # 1. LangChain 工具（已封装的内置工具）
         if tool_name in ["add_todo", "query_todo", "generate_commit", "auto_commit",
-                         "git_pull", "git_push", "code_review", "start_project", "build_project", "diagnose_project", "stop_project"]:
+                         "git_pull", "git_push", "code_review", "start_project", "build_project", 
+                         "diagnose_project", "stop_project", "generate_daily_report"]:
             result_text = _call_langchain_tool(tool_name, tool_args)
             return {
                 "intent": intent,
