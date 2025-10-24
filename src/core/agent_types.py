@@ -39,6 +39,12 @@ class Intent(Enum):
     # 环境诊断类
     ENVIRONMENT_DIAGNOSTIC = "environment_diagnostic"
 
+    # 项目管理类
+    START_PROJECT = "start_project"
+    BUILD_PROJECT = "build_project"
+    DIAGNOSE_PROJECT = "diagnose_project"
+    STOP_PROJECT = "stop_project"
+
     # 未知类型
     UNKNOWN = "unknown"
 
@@ -122,6 +128,20 @@ class GitData:
 
 
 @dataclass
+class ProjectData:
+    """项目管理数据"""
+    project_type: str = ""  # nodejs, python, unknown
+    action: str = ""  # start, build
+    command: str = ""  # 执行的命令
+    package_manager: str = ""  # pnpm, npm, yarn, pip
+    output: str = ""  # 执行输出
+    port: str = ""  # 监听端口
+    success: bool = False
+    auto_install_triggered: bool = False  # 是否触发了自动安装
+    retry_count: int = 0
+
+
+@dataclass
 class AgentState:
     """
     智能体状态 - 重构版本
@@ -149,6 +169,7 @@ class AgentState:
     todo_data: Optional[TodoData] = None
     conversion_data: Optional[DataConversionData] = None
     git_data: Optional[GitData] = None
+    project_data: Optional[ProjectData] = None
 
     # 环境诊断结果
     diagnostic_result: str = ""
@@ -283,6 +304,32 @@ class AgentState:
                 "git_push_branch": "",
             })
 
+        # 项目数据
+        if self.project_data:
+            result.update({
+                "project_type": self.project_data.project_type,
+                "project_action": self.project_data.action,
+                "project_command": self.project_data.command,
+                "project_package_manager": self.project_data.package_manager,
+                "project_output": self.project_data.output,
+                "project_port": self.project_data.port,
+                "project_success": self.project_data.success,
+                "project_auto_install_triggered": self.project_data.auto_install_triggered,
+                "project_retry_count": self.project_data.retry_count,
+            })
+        else:
+            result.update({
+                "project_type": "",
+                "project_action": "",
+                "project_command": "",
+                "project_package_manager": "",
+                "project_output": "",
+                "project_port": "",
+                "project_success": False,
+                "project_auto_install_triggered": False,
+                "project_retry_count": 0,
+            })
+
         return result
 
     @classmethod
@@ -379,6 +426,21 @@ class AgentState:
                 push_branch=data.get("git_push_branch", ""),
             )
 
+        # 项目数据
+        project_data = None
+        if any(key.startswith("project_") for key in data.keys()):
+            project_data = ProjectData(
+                project_type=data.get("project_type", ""),
+                action=data.get("project_action", ""),
+                command=data.get("project_command", ""),
+                package_manager=data.get("project_package_manager", ""),
+                output=data.get("project_output", ""),
+                port=data.get("project_port", ""),
+                success=data.get("project_success", False),
+                auto_install_triggered=data.get("project_auto_install_triggered", False),
+                retry_count=data.get("project_retry_count", 0),
+            )
+
         return cls(
             context=context,
             response=data.get("response", ""),
@@ -390,6 +452,7 @@ class AgentState:
             todo_data=todo_data,
             conversion_data=conversion_data,
             git_data=git_data,
+            project_data=project_data,
             diagnostic_result=data.get("diagnostic_result", ""),
         )
 
@@ -474,4 +537,15 @@ class AgentStateDict(TypedDict):
     git_pull_has_updates: bool
     git_push_success: bool
     git_push_branch: str
+
+    # 项目数据
+    project_type: str
+    project_action: str
+    project_command: str
+    project_package_manager: str
+    project_output: str
+    project_port: str
+    project_success: bool
+    project_auto_install_triggered: bool
+    project_retry_count: int
 

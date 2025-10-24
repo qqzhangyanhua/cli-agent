@@ -13,7 +13,12 @@
       "Bash(timeout 5 bash -c 'echo -e \"\"\"\"exit\\n\"\"\"\" | ./dnm')",
       "Bash(python:*)",
       "Bash(time python:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(timeout 10 pnpm dev:*)",
+      "Read(//Users/zhangyanhua/Desktop/AI/ai-wedding/**)",
+      "Read(//Users/zhangyanhua/**)",
+      "Bash(ps:*)",
+      "Read(//private/tmp/**)"
     ],
     "deny": [],
     "ask": []

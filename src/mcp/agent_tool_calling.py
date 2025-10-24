@@ -15,12 +15,13 @@ from src.tools.todo_tools import todo_tools, add_todo_tool, query_todo_tool
 from src.tools.git_commit_tools import generate_commit_tool
 from src.tools.code_review_tools import code_review_tool
 from src.tools.auto_commit_tools import auto_commit_tool, git_pull_tool, git_push_tool
+from src.tools.project_manager_tools import project_manager_tools, start_project_tool, build_project_tool, diagnose_project_tool, stop_project_tool
 
 
 def create_tool_agent():
     """创建一个支持工具调用的 ReAct 代理"""
 
-    system_prompt = f"""你是一个智能终端助手，可以帮助用户管理待办事项。
+    system_prompt = f"""你是一个智能终端助手，可以帮助用户管理待办事项、Git操作和项目管理。
 
 今天的日期是: {datetime.now().strftime("%Y-%m-%d %A")}
 
@@ -30,14 +31,28 @@ def create_tool_agent():
 - 后天 = {(datetime.now() + __import__('datetime').timedelta(days=2)).strftime("%Y-%m-%d")}
 
 你有以下工具可以使用：
+
+📝 待办管理:
 1. add_todo - 添加待办事项
 2. query_todo - 查询待办事项
+
+🔧 Git操作:
+3. generate_commit - 生成Git commit消息
+4. code_review - 代码审查
+5. auto_commit - 自动Git提交（add + commit）
+6. git_pull - 拉取远程代码
+7. git_push - 推送代码到远程
+
+🚀 项目管理:
+8. start_project - 智能启动项目（自动检测类型、安装依赖）
+9. build_project - 智能打包项目
 
 请根据用户的输入，判断用户意图并调用合适的工具。
 
 重要规则：
-- 如果用户说"今天18点给XX打电话"，这是添加待办，应该调用 add_todo
-- 如果用户问"今天有什么要做的"，这是查询待办，应该调用 query_todo
+- 待办事项: "今天18点给XX打电话" → add_todo, "今天有什么要做的" → query_todo
+- 项目管理: "启动项目"/"运行项目" → start_project, "打包项目"/"构建项目" → build_project
+- Git操作: "提交代码" → auto_commit, "生成commit消息" → generate_commit
 - 一定要将相对日期转换为具体的 YYYY-MM-DD 格式
 - 工具调用的输入必须是合法的 JSON 字符串
 """
@@ -120,6 +135,83 @@ def tool_calling_node(state: AgentState) -> dict:
         }
 
 
+def _get_all_available_tools() -> list:
+    """
+    获取所有可用工具（MCP + LangChain）
+    
+    Returns:
+        工具列表，每个工具包含 name, description, params 等信息
+    """
+    from src.mcp.mcp_manager import mcp_manager
+    
+    # 1. 获取 MCP 工具
+    mcp_tools = mcp_manager.list_available_tools()
+    
+    # 2. 添加 LangChain 工具
+    langchain_tools_info = [
+        {
+            "name": "add_todo",
+            "description": "添加待办事项。当用户想要记录、添加、设置一个待办或提醒时使用。",
+            "params": ["date", "time", "content"]
+        },
+        {
+            "name": "query_todo", 
+            "description": "查询待办事项。当用户想要查看、询问待办事项时使用。",
+            "params": ["type", "date", "keyword"]
+        },
+        {
+            "name": "generate_commit",
+            "description": "生成Git commit消息。分析代码变更并生成符合规范的commit消息。",
+            "params": []
+        },
+        {
+            "name": "auto_commit",
+            "description": "自动Git提交。执行 git add + commit 流程。",
+            "params": []
+        },
+        {
+            "name": "git_pull",
+            "description": "拉取远程代码。执行 git pull 操作。",
+            "params": []
+        },
+        {
+            "name": "git_push", 
+            "description": "推送代码到远程。执行 git push 操作。",
+            "params": []
+        },
+        {
+            "name": "code_review",
+            "description": "代码审查。分析代码变更并提供审查意见。",
+            "params": []
+        },
+        {
+            "name": "start_project",
+            "description": "智能启动项目。自动检测项目类型（Node.js/Python），分析启动命令，后台执行并监控输出，自动处理依赖缺失问题。",
+            "params": ["work_dir"]
+        },
+        {
+            "name": "build_project",
+            "description": "智能打包项目。自动检测项目类型，分析打包命令并执行。",
+            "params": ["work_dir"]
+        },
+        {
+            "name": "diagnose_project",
+            "description": "诊断项目运行状态。检查进程、端口、连接等状态，提供详细的诊断报告。",
+            "params": ["pid", "port"]
+        },
+        {
+            "name": "stop_project",
+            "description": "停止运行中的项目。可以停止开发服务器、构建进程等。",
+            "params": ["port", "pid"]
+        }
+    ]
+    
+    # 合并所有工具
+    all_tools = mcp_tools + langchain_tools_info
+    
+    return all_tools
+
+
 def _generate_tools_documentation(tools: list) -> str:
     """
     自动生成工具文档
@@ -179,6 +271,10 @@ def _infer_intent_from_tool(tool_name: str) -> str:
         "data_conversion": "data_conversion",
         "environment_diagnostic": "environment_diagnostic",
         "terminal_command": "terminal_command",
+        "start_project": "start_project",
+        "build_project": "build_project",
+        "diagnose_project": "diagnose_project",
+        "stop_project": "stop_project",
     }
 
     # 如果在映射表中，返回对应意图
@@ -210,6 +306,10 @@ def _call_langchain_tool(tool_name: str, tool_args: dict) -> str:
         "git_pull": git_pull_tool,
         "git_push": git_push_tool,
         "code_review": code_review_tool,
+        "start_project": start_project_tool,
+        "build_project": build_project_tool,
+        "diagnose_project": diagnose_project_tool,
+        "stop_project": stop_project_tool,
     }
 
     if tool_name in langchain_tools:
@@ -365,8 +465,8 @@ def simple_tool_calling_node(state: dict, enable_streaming: bool = True) -> dict
 
     print(f"\n[工具选择] 分析用户意图...")
 
-    # 动态获取所有可用工具
-    available_tools = mcp_manager.list_available_tools()
+    # 动态获取所有可用工具（MCP + LangChain）
+    available_tools = _get_all_available_tools()
 
     # 自动生成工具文档
     tools_doc = _generate_tools_documentation(available_tools)
@@ -438,7 +538,7 @@ def simple_tool_calling_node(state: dict, enable_streaming: bool = True) -> dict
         # 分类处理工具调用
         # 1. LangChain 工具（已封装的内置工具）
         if tool_name in ["add_todo", "query_todo", "generate_commit", "auto_commit",
-                         "git_pull", "git_push", "code_review"]:
+                         "git_pull", "git_push", "code_review", "start_project", "build_project", "diagnose_project", "stop_project"]:
             result_text = _call_langchain_tool(tool_name, tool_args)
             return {
                 "intent": intent,
