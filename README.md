@@ -97,6 +97,76 @@ dnm --version
 
 看到版本号 `1.0.0` 就成功了！✅
 
+---
+
+## 🔧 配置设置
+
+### 📋 首次配置（必需）
+
+安装完成后，需要配置 API 密钥才能使用：
+
+```bash
+# 1. 复制配置模板
+cp config.template.json config.json
+
+# 2. 编辑配置文件，填入你的 API 密钥
+# 使用你喜欢的编辑器打开 config.json
+```
+
+### 🔑 API 密钥配置
+
+编辑 `config.json` 文件，填入你的真实 API 密钥：
+
+```json
+{
+  "llm_configs": {
+    "primary": {
+      "model": "kimi-k2-0905-preview",
+      "base_url": "https://api.moonshot.cn/v1",
+      "api_key": "你的_KIMI_API_密钥",
+      "temperature": 0
+    },
+    "secondary": {
+      "model": "claude-3-5-sonnet",
+      "base_url": "https://sdwfger.edu.kg/v1", 
+      "api_key": "你的_CLAUDE_API_密钥",
+      "temperature": 0
+    }
+  }
+}
+```
+
+### 🔒 安全说明
+
+- ✅ `config.json` 已被添加到 `.gitignore`，不会被提交到 Git
+- ✅ 所有敏感信息都存储在本地配置文件中
+- ✅ `config.template.json` 提供了完整的配置结构示例
+
+### 🚨 常见配置问题
+
+**配置文件不存在**
+```
+❌ 配置文件不存在，已尝试以下位置:
+  - /path/to/project/config.json
+  - /current/working/directory/config.json
+```
+
+**解决方案：**
+1. 在项目根目录运行：`cp config.template.json config.json`
+2. 编辑 `config.json` 填入你的 API 密钥
+3. 或设置环境变量：`export AI_AGENT_WORKDIR=/path/to/project`
+
+**API 密钥无效**
+```
+❌ API 调用失败: Invalid API key
+```
+
+**解决方案：** 检查 `config.json` 中的 API 密钥是否正确填写
+
+### 📖 详细配置指南
+
+更多配置选项和详细说明，请查看：[docs/CONFIG_SETUP_GUIDE.md](docs/CONFIG_SETUP_GUIDE.md)
+
 ### Windows 编码兼容性
 
 本项目已经针对 Windows 平台的编码问题进行了全面修复。所有 Git 命令和终端操作都能正确处理 UTF-8 编码的输出。
@@ -498,6 +568,7 @@ cd /Users/zhangyanhua/Desktop/AI/tushare/quantification/example
 - **[docs/CODE_REVIEW_FEATURE.md](docs/CODE_REVIEW_FEATURE.md)** - 代码审查功能说明
 
 ### 🔧 技术文档
+- **[docs/CONFIG_SETUP_GUIDE.md](docs/CONFIG_SETUP_GUIDE.md)** - 配置文件设置详细指南 🆕
 - **[docs/CLI_README.md](docs/CLI_README.md)** - 完整 CLI 使用文档
 - **[docs/INTERACTIVE_FILE_SELECTOR_GUIDE.md](docs/INTERACTIVE_FILE_SELECTOR_GUIDE.md)** - 文件选择器详细指南
 - **[docs/MCP_INTEGRATION_COMPLETE.md](docs/MCP_INTEGRATION_COMPLETE.md)** - MCP 集成完整说明
@@ -541,24 +612,32 @@ MIT License
 
 ## 🎉 开始使用
 
+### ⚡ 快速启动
+
 ```bash
+# 1. 首次使用需要配置 API 密钥
+cp config.template.json config.json
+# 编辑 config.json 填入你的 API 密钥
+
+# 2. 启动 DNM
 dnm
 ```
 
 **就这么简单！** 开始享受 AI 助手带来的便利吧！🚀
 
-### 快速上手
+### 🚀 快速上手
 
-1. ✅ 安装完成后，直接输入 `dnm` 启动
-2. 💬 用自然语言描述你想做什么
-3. 📁 使用 `@` 快速引用文件
-4. 🔍 输入 `tools` 查看所有可用功能
-5. 💡 输入 `help` 查看功能帮助
-6. 📋 输入 `todos` 查看待办事项
-7. 🎯 尝试 Git 工作流：`同步并提交`（自动 pull → commit → push）
-8. 🎯 尝试数据转换：`@data.json 转换为CSV`
-9. 🔍 尝试环境诊断：`检查开发环境`
-10. 📊 尝试日报生成：`生成日报`（汇总当天工作活动）
+1. 🔧 **首次配置**：复制 `config.template.json` 为 `config.json` 并填入 API 密钥
+2. ✅ **启动工具**：直接输入 `dnm` 启动交互模式
+3. 💬 **自然对话**：用自然语言描述你想做什么
+4. 📁 **文件引用**：使用 `@` 快速引用文件（支持自动补全）
+5. 🔍 **查看功能**：输入 `tools` 查看所有可用功能
+6. 💡 **获取帮助**：输入 `help` 查看功能帮助
+7. 📋 **待办管理**：输入 `todos` 查看待办事项
+8. 🎯 **Git 工作流**：尝试 `同步并提交`（自动 pull → commit → push）
+9. 🔄 **数据转换**：尝试 `@data.json 转换为CSV`
+10. 🔍 **环境诊断**：尝试 `检查开发环境`
+11. 📊 **日报生成**：尝试 `生成日报`（汇总当天工作活动）
 
 ---
 
