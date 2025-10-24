@@ -203,6 +203,11 @@ def _get_all_available_tools() -> list:
             "name": "stop_project",
             "description": "停止运行中的项目。可以停止开发服务器、构建进程等。",
             "params": ["port", "pid"]
+        },
+        {
+            "name": "environment_diagnostic",
+            "description": "诊断开发环境配置。检查Python版本、Node.js、依赖包、开发工具等环境状态，提供详细的环境诊断报告。",
+            "params": []
         }
     ]
     
