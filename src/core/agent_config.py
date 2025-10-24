@@ -64,21 +64,47 @@ def load_config():
     Returns:
         dict: 配置字典
     """
-    config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "config.json")
+    # 尝试多个可能的配置文件位置
+    possible_paths = [
+        # 1. 项目根目录（相对于此文件）
+        os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "config.json"),
+        # 2. 当前工作目录
+        os.path.join(os.getcwd(), "config.json"),
+        # 3. 环境变量指定的工作目录
+        os.path.join(os.environ.get("AI_AGENT_WORKDIR", ""), "config.json"),
+        # 4. 用户主目录下的 .ai-agent 目录
+        os.path.join(os.path.expanduser("~"), ".ai-agent", "config.json"),
+    ]
     
-    if not os.path.exists(config_path):
+    # 添加项目特定路径（如果在已知项目目录中）
+    project_dir = "/Users/zhangyanhua/Desktop/AI/tushare/quantification/example"
+    if os.path.exists(project_dir):
+        possible_paths.insert(0, os.path.join(project_dir, "config.json"))
+    
+    config_path = None
+    for path in possible_paths:
+        if path and os.path.exists(path):
+            config_path = path
+            break
+    
+    if not config_path:
+        # 生成友好的错误信息，显示所有尝试的路径
+        paths_str = "\n".join([f"  - {path}" for path in possible_paths if path])
         raise FileNotFoundError(
-            f"❌ 配置文件不存在: {config_path}\n"
-            f"💡 请复制 config.template.json 为 config.json 并填入你的 API 密钥"
+            f"❌ 配置文件不存在，已尝试以下位置:\n{paths_str}\n\n"
+            f"💡 解决方案:\n"
+            f"  1. 在项目根目录运行: cp config.template.json config.json\n"
+            f"  2. 编辑 config.json 填入你的 API 密钥\n"
+            f"  3. 或设置环境变量: export AI_AGENT_WORKDIR=/path/to/project"
         )
     
     try:
         with open(config_path, 'r', encoding='utf-8') as f:
             return json.load(f)
     except json.JSONDecodeError as e:
-        raise ValueError(f"❌ 配置文件格式错误: {e}")
+        raise ValueError(f"❌ 配置文件格式错误 ({config_path}): {e}")
     except Exception as e:
-        raise Exception(f"❌ 读取配置文件失败: {e}")
+        raise Exception(f"❌ 读取配置文件失败 ({config_path}): {e}")
 
 # 加载配置
 _config = load_config()
