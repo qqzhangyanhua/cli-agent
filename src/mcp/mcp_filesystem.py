@@ -34,8 +34,18 @@ class FileSystemTools:
         """检查路径是否在允许的目录内"""
         try:
             path = Path(file_path).resolve()
-            return any(path.is_relative_to(allowed_dir) or str(path).startswith(str(allowed_dir))
-                      for allowed_dir in self.allowed_dirs)
+            
+            # 检查预配置的允许目录
+            for allowed_dir in self.allowed_dirs:
+                if path.is_relative_to(allowed_dir) or str(path).startswith(str(allowed_dir)):
+                    return True
+            
+            # 动态检查：如果路径在当前工作目录下，也允许访问
+            current_dir = Path.cwd().resolve()
+            if path.is_relative_to(current_dir) or str(path).startswith(str(current_dir)):
+                return True
+                
+            return False
         except Exception:
             return False
     
