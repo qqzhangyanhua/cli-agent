@@ -1,11 +1,16 @@
 """
-用户界面和交互模块
+增强的用户界面和交互模块
+集成性能监控和系统健康检查
 """
 
 from src.core.agent_config import LLM_CONFIG, LLM_CONFIG2
 from src.core.agent_memory import memory
 from src.mcp.mcp_manager import mcp_manager
 from src.ui.file_reference_parser import get_file_suggestions
+from src.core.agent_llm import get_llm_stats, reset_llm_stats
+from src.core.agent_metrics import get_metrics_collector
+from src.core.agent_monitoring import get_monitoring_dashboard
+from src.core.agent_resilience import get_resilience_manager
 
 
 def print_header():
@@ -41,6 +46,10 @@ def print_header():
     print("  • /tools          - 查看MCP工具列表")
     print("  • /files          - 查看 @ 文件引用功能说明")
     print("  • /todos          - 查看今日待办事项")
+    print("  • /stats          - 查看性能统计")
+    print("  • /health         - 系统健康检查")
+    print("  • /errors         - 查看错误统计")
+    print("  • /reset          - 重置性能计数器")
     print("  • /help           - 显示详细帮助")
     print("\n" + "=" * 80 + "\n")
 
@@ -223,6 +232,99 @@ def handle_special_commands(user_input: str) -> bool:
         # 这里简单显示提示，实际待办查询会由工作流处理
         print("\n📋 提示: 请使用自然语言查询待办事项")
         print("例如: '今天有什么待办' 或 '查看所有待办'\n")
+        return False
+    
+    # 查看性能统计
+    if user_input_lower in ['/stats', '/统计']:
+        metrics = get_metrics_collector()
+        dashboard = get_monitoring_dashboard()
+        
+        print("\n📊 性能统计报告")
+        print("─" * 80)
+        print(dashboard.get_quick_stats())
+        
+        # LLM 统计
+        llm_stats = get_llm_stats()
+        print("🤖 LLM 使用统计:")
+        for llm_name, stats in llm_stats.items():
+            if llm_name != "session_summary":
+                print(f"  • {stats['name']}: {stats['call_count']} 次调用, 成功率 {stats['success_rate']:.1%}")
+        
+        print(f"  • 总 Token: {llm_stats['session_summary']['total_tokens']['total']:,}")
+        print("─" * 80 + "\n")
+        return False
+    
+    # 系统健康检查
+    if user_input_lower in ['/health', '/健康']:
+        dashboard = get_monitoring_dashboard()
+        health = dashboard.get_system_health()
+        
+        status_emoji = {"healthy": "🟢", "degraded": "🟡", "critical": "🔴"}
+        print(f"\n{status_emoji.get(health.overall_status, '⚪')} 系统健康检查")
+        print("─" * 80)
+        print(f"整体状态: {health.overall_status.upper()}")
+        print(f"性能分数: {health.performance_score:.1f}/100")
+        print(f"检查时间: {health.timestamp.strftime('%Y-%m-%d %H:%M:%S')}")
+        
+        print("\n📋 组件状态:")
+        for comp_name, comp_data in health.components.items():
+            status = comp_data["status"]
+            emoji = status_emoji.get(status, "⚪")
+            print(f"  {emoji} {comp_name}: {status}")
+            
+            if comp_data.get("issues"):
+                for issue in comp_data["issues"]:
+                    print(f"    ⚠️ {issue}")
+        
+        if health.recommendations:
+            print("\n💡 优化建议:")
+            for rec in health.recommendations:
+                print(f"  • {rec}")
+        
+        print("─" * 80 + "\n")
+        return False
+    
+    # 查看错误统计
+    if user_input_lower in ['/errors', '/错误']:
+        resilience = get_resilience_manager()
+        status = resilience.get_health_status()
+        
+        print("\n🚨 错误统计报告")
+        print("─" * 80)
+        print(f"总错误数: {status['total_errors']}")
+        print(f"恢复次数: {status['total_recoveries']}")
+        print(f"恢复率: {status['recovery_rate']:.1%}")
+        
+        if status['error_stats']:
+            print("\n📊 错误分类:")
+            for error_type, count in status['error_stats'].items():
+                print(f"  • {error_type}: {count} 次")
+        
+        if status['circuit_breakers']:
+            print("\n🔴 熔断器状态:")
+            for name, breaker in status['circuit_breakers'].items():
+                state_emoji = {"OPEN": "🔴", "CLOSED": "🟢", "HALF_OPEN": "🟡"}
+                emoji = state_emoji.get(breaker['state'], "⚪")
+                print(f"  {emoji} {name}: {breaker['state']} (失败: {breaker['failure_count']})")
+        
+        print("─" * 80 + "\n")
+        return False
+    
+    # 重置性能计数器
+    if user_input_lower in ['/reset', '/重置']:
+        metrics = get_metrics_collector()
+        resilience = get_resilience_manager()
+        
+        # 重置各种统计
+        metrics.reset_session_stats()
+        resilience.reset_stats()
+        reset_llm_stats()
+        
+        print("\n✅ 性能计数器已重置")
+        print("  • 会话统计已清空")
+        print("  • 错误统计已清空") 
+        print("  • LLM 统计已清空")
+        print("  • 熔断器状态已重置\n")
         return False
     
     return None

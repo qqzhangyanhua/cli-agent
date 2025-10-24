@@ -1,6 +1,6 @@
 """
-MCP客户端管理器
-用于管理和调用MCP服务器（包括desktop-commander）
+增强的 MCP 客户端管理器
+集成性能监控和错误处理
 """
 
 import subprocess
@@ -12,6 +12,7 @@ from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FutureTimeoutError
 from datetime import datetime, timedelta
 from src.mcp.mcp_filesystem import fs_tools
+from src.core.agent_metrics import get_metrics_collector
 
 
 class MCPManager:
@@ -27,6 +28,9 @@ class MCPManager:
         self.tool_registry = {}  # 统一的工具注册表（核心数据结构）
         self.config = {}
         self._discovery_lock = threading.Lock()
+        
+        # 集成性能监控
+        self.metrics = get_metrics_collector()
 
         # 注册内置文件系统工具
         self._register_filesystem_tools()
@@ -547,7 +551,7 @@ class MCPManager:
 
     def call_tool(self, tool_name: str, **kwargs) -> Dict:
         """
-        统一的工具调用接口 - 零分支自动分发
+        统一的工具调用接口 - 零分支自动分发（集成性能监控）
 
         Args:
             tool_name: 工具名称
@@ -562,33 +566,47 @@ class MCPManager:
 
         tool = self.tool_registry[tool_name]
 
-        try:
-            if tool["type"] == "builtin":
-                # 内置工具：直接调用函数
-                func = tool["func"]
+        # 使用性能监控
+        with self.metrics.measure_operation("tool_call", tool_name) as ctx:
+            try:
+                if tool["type"] == "builtin":
+                    # 内置工具：直接调用函数
+                    func = tool["func"]
 
-                # 过滤参数（只传递函数需要的参数）
-                func_params = {
-                    k: v for k, v in kwargs.items()
-                    if k in tool["parameters"].get("properties", {}) and v is not None
-                }
+                    # 过滤参数（只传递函数需要的参数）
+                    func_params = {
+                        k: v for k, v in kwargs.items()
+                        if k in tool["parameters"].get("properties", {}) and v is not None
+                    }
 
-                result = func(**func_params)
-                return result
+                    result = func(**func_params)
+                    
+                    # 记录额外数据
+                    ctx["additional_data"] = {
+                        "tool_type": "builtin",
+                        "param_count": len(func_params)
+                    }
+                    
+                    return result
 
-            elif tool["type"] == "mcp":
-                # MCP工具：调用服务器
-                return self.call_mcp_server(
-                    server_name=tool["server"],
-                    tool_name=tool["method"],
-                    params=kwargs
-                )
+                elif tool["type"] == "mcp":
+                    # MCP工具：调用服务器
+                    ctx["additional_data"] = {
+                        "tool_type": "mcp",
+                        "server": tool["server"]
+                    }
+                    
+                    return self.call_mcp_server(
+                        server_name=tool["server"],
+                        tool_name=tool["method"],
+                        params=kwargs
+                    )
 
-            else:
-                return {"success": False, "error": f"未知的工具类型: {tool['type']}"}
+                else:
+                    return {"success": False, "error": f"未知的工具类型: {tool['type']}"}
 
-        except Exception as e:
-            return {"success": False, "error": f"工具执行失败: {str(e)}"}
+            except Exception as e:
+                return {"success": False, "error": f"工具执行失败: {str(e)}"}
 
     def list_available_tools(self) -> List[Dict]:
         """动态生成工具列表 - 零硬编码"""

@@ -40,6 +40,7 @@ DNM智能体终端控制工具 - CLI版本
 import sys
 import os
 import argparse
+import signal
 from pathlib import Path
 from typing import Optional
 
@@ -56,6 +57,7 @@ from src.ui.agent_ui import print_header, handle_special_commands
 from src.ui.file_reference_parser import update_working_directory
 from src.ui.interactive_file_selector import update_selector_working_directory
 from src.ui.input_handlers import smart_input_handler
+from src.core.agent_monitoring import get_monitoring_dashboard
 
 # 尝试导入智能文件输入（IDE 风格）- 用于目录更新
 try:
@@ -195,6 +197,23 @@ def execute_single_command(command: str, quiet: bool = False) -> int:
         return 1
 
 
+def setup_signal_handlers():
+    """设置信号处理器"""
+    def signal_handler(signum, frame):
+        print("\n\n👋 收到退出信号，正在清理...")
+        # 停止监控系统
+        try:
+            dashboard = get_monitoring_dashboard()
+            dashboard.stop_monitoring()
+        except:
+            pass
+        print("👋 程序已退出")
+        sys.exit(0)
+    
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
+
 def interactive_mode(quiet: bool = False, no_memory: bool = False) -> None:
     """
     交互模式
@@ -203,6 +222,13 @@ def interactive_mode(quiet: bool = False, no_memory: bool = False) -> None:
         quiet: 是否安静模式
         no_memory: 是否禁用记忆
     """
+    # 设置信号处理器
+    setup_signal_handlers()
+    
+    # 启动监控系统
+    dashboard = get_monitoring_dashboard()
+    dashboard.start_monitoring()
+    
     # 打印欢迎信息
     if not quiet:
         print_header()
@@ -260,6 +286,16 @@ def interactive_mode(quiet: bool = False, no_memory: bool = False) -> None:
         except Exception as e:
             print(f"\n❌ 发生错误: {str(e)}\n", file=sys.stderr)
             print("请重试或输入 'exit' 退出\n")
+    
+    # 停止监控系统
+    try:
+        dashboard.stop_monitoring()
+    except KeyboardInterrupt:
+        # 如果在停止监控时再次被中断，直接退出
+        print("👋 程序已退出")
+    except Exception as e:
+        print(f"⚠️ 停止监控时出现问题: {e}")
+        # 继续退出，不阻塞程序
 
 
 def main() -> int:

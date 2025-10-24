@@ -102,8 +102,8 @@ def _traditional_input_loop(prompt: str) -> str:
             return user_input
 
         except (KeyboardInterrupt, EOFError):
-            print("\n\n👋 检测到中断信号，退出程序...\n")
-            sys.exit(0)
+            # 不直接退出，而是重新抛出异常让上层处理
+            raise
 
 
 def _handle_file_reference(user_input: str, prompt: str) -> Optional[str]:
