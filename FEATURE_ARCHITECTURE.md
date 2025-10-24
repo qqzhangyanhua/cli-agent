@@ -26,6 +26,7 @@ DNM 是一个基于 LangGraph 和 LangChain 的智能终端助手，支持自然
 - 📊 **数据转换工具** - JSON/CSV/YAML/XML 格式互转、验证
 - 🔍 **环境诊断** - 自动检测开发环境配置和依赖问题
 - 📋 **待办事项管理** - 智能识别并管理日程安排和任务提醒
+- 📊 **自动日报助手** - 汇总当天 Git 提交、命令执行、AI 交互，自动生成工作日报
 - 🔌 **MCP 集成** - 文件系统和桌面控制功能
 - 🎯 **双 LLM 架构** - 通用模型处理对话，代码模型生成命令
 
@@ -67,6 +68,7 @@ DNM 是一个基于 LangGraph 和 LangChain 的智能终端助手，支持自然
 │  • git_tools.py - Git 操作工具                             │
 │  • data_converter_tools.py - 数据转换工具                  │
 │  • env_diagnostic_tools.py - 环境诊断工具                  │
+│  • daily_report_tools.py - 自动日报助手工具                │
 └─────────────────────────┬───────────────────────────────────┘
                           │
 ┌─────────────────────────┴───────────────────────────────────┐
@@ -241,6 +243,37 @@ DNM 是一个基于 LangGraph 和 LangChain 的智能终端助手，支持自然
 3. **意图关联**: 根据意图类型优化记忆存储
 4. **持久化存储**: 支持会话间的记忆保持
 
+### 8. 自动日报助手系统
+
+#### 核心文件
+- `src/tools/daily_report_tools.py` - 日报数据收集和生成工具
+
+#### 实现特性
+1. **数据收集**: 自动收集当天的 Git 提交、命令执行、AI 交互记录
+2. **智能分析**: 使用 LLM 分析活动数据，生成结构化日报
+3. **多种模板**: 支持标准、技术详细、简要总结三种日报模板
+4. **自动保存**: 可配置自动保存日报文件到指定目录
+
+#### 数据收集范围
+- **Git 提交记录**: 当天的 commit 历史，包括消息、时间、作者
+- **命令执行历史**: 从内存和 shell 历史中收集执行的命令
+- **AI 交互记录**: 对话历史、意图分析、工具调用记录
+- **项目信息**: 当前分支、工作状态、文件变更统计
+
+#### 日报模板类型
+- **standard**: 标准日报格式，包含工作概况和总结
+- **technical**: 技术详细模板，重点关注代码变更和技术操作
+- **summary**: 简要总结模板，生成简洁的工作摘要
+
+#### 配置选项
+```python
+# 日报配置
+DAILY_REPORT_TEMPLATES = ["standard", "technical", "summary"]
+DEFAULT_DAILY_REPORT_TEMPLATE = "standard"
+DAILY_REPORT_DIR = "daily_reports"
+AUTO_SAVE_DAILY_REPORT = True
+```
+
 ---
 
 ## 🔄 工作流程
@@ -408,7 +441,8 @@ dnm/                              # 项目根目录
 │       ├── auto_commit_tools.py  # 自动提交
 │       ├── code_review_tools.py  # 代码审查
 │       ├── data_converter_tools.py  # 数据转换
-│       └── env_diagnostic_tools.py  # 环境诊断
+│       ├── env_diagnostic_tools.py  # 环境诊断
+│       └── daily_report_tools.py   # 自动日报助手
 ├── docs/                         # 文档目录
 ├── test/                         # 测试文件
 ├── mcp_config.json              # MCP 配置

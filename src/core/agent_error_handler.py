@@ -416,3 +416,4 @@ llm_fallback_handler = LLMFallbackHandler()
 def get_llm_fallback_handler() -> LLMFallbackHandler:
     """获取全局 LLM 降级处理器"""
     return llm_fallback_handler
+

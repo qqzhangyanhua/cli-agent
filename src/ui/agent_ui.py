@@ -46,6 +46,7 @@ def print_header():
     print("  • /tools          - 查看MCP工具列表")
     print("  • /files          - 查看 @ 文件引用功能说明")
     print("  • /todos          - 查看今日待办事项")
+    print("  • /report         - 生成今日工作日报")
     print("  • /stats          - 查看性能统计")
     print("  • /health         - 系统健康检查")
     print("  • /errors         - 查看错误统计")
@@ -217,6 +218,7 @@ def handle_special_commands(user_input: str) -> bool:
         print("  /tools            - 查看MCP工具列表")
         print("  /files            - 查看 @ 文件引用功能说明")
         print("  /todos            - 查看今日待办事项")
+        print("  /report           - 生成今日工作日报")
         print("  /help             - 显示此帮助信息")
         print("\n💡 文件引用:")
         print("  @ 或 @filename    - 引用文件并提问")
@@ -232,6 +234,13 @@ def handle_special_commands(user_input: str) -> bool:
         # 这里简单显示提示，实际待办查询会由工作流处理
         print("\n📋 提示: 请使用自然语言查询待办事项")
         print("例如: '今天有什么待办' 或 '查看所有待办'\n")
+        return False
+    
+    # 生成日报
+    if user_input_lower in ['/report', '/日报']:
+        # 这里简单显示提示，实际日报生成会由工作流处理
+        print("\n📊 提示: 请使用自然语言生成日报")
+        print("例如: '生成日报' 或 '今日总结' 或 '工作报告'\n")
         return False
     
     # 查看性能统计
