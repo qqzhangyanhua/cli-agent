@@ -11,7 +11,7 @@ from src.core.agent_llm import get_llm_stats, reset_llm_stats
 from src.core.agent_metrics import get_metrics_collector
 from src.core.agent_monitoring import get_monitoring_dashboard
 from src.core.agent_resilience import get_resilience_manager
-from src.core.logger import get_logger
+from src.core.logger import get_logger, log_json_event
 
 _log = get_logger("ui")
 
@@ -268,6 +268,11 @@ def handle_special_commands(user_input: str) -> bool:
             _log.info("查看统计: total_calls=%s, total_tokens=%s",
                       llm_stats['session_summary']['total_calls'],
                       llm_stats['session_summary']['total_tokens']['total'])
+            # 结构化日志
+            log_json_event(_log, "stats_view", {
+                "llm": llm_stats.get('session_summary', {}),
+                "ops": metrics.get_operation_stats(),
+            })
         except Exception:
             pass
         return False
@@ -302,6 +307,13 @@ def handle_special_commands(user_input: str) -> bool:
         print("─" * 80 + "\n")
         try:
             _log.info("查看健康: overall=%s, score=%.1f", health.overall_status, health.performance_score)
+            # 结构化日志
+            log_json_event(_log, "health_view", {
+                "overall": health.overall_status,
+                "score": health.performance_score,
+                "components": health.components,
+                "ts": health.timestamp.isoformat()
+            })
         except Exception:
             pass
         return False
@@ -333,6 +345,8 @@ def handle_special_commands(user_input: str) -> bool:
         try:
             _log.info("查看错误: total_errors=%s, recoveries=%s",
                       status['total_errors'], status['total_recoveries'])
+            # 结构化日志
+            log_json_event(_log, "errors_view", status)
         except Exception:
             pass
         return False

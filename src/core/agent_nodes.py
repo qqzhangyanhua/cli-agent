@@ -13,7 +13,7 @@ from src.core.agent_utils import execute_terminal_command
 from src.core.agent_llm import llm, llm_code
 from src.mcp.mcp_manager import mcp_manager
 from src.core.json_utils import extract_json_str, safe_json_loads
-from src.core.logger import get_logger
+from src.core.logger import get_logger, log_json_event
 
 _log = get_logger("nodes")
 from src.tools.git_tools import git_tools
@@ -1282,6 +1282,10 @@ def git_add_node(state: AgentState) -> dict:
         if result["success"]:
             files_count = result.get("files_count", 0)
             print(f"[Git Add] ✅ {result['message']}")
+            try:
+                log_json_event(_log, "git_add", {"success": True, "files_count": files_count})
+            except Exception:
+                pass
             
             return {
                 "git_add_success": True,
@@ -1291,6 +1295,10 @@ def git_add_node(state: AgentState) -> dict:
         else:
             error_msg = result.get("error", "git add 失败")
             print(f"[Git Add] ❌ {error_msg}")
+            try:
+                log_json_event(_log, "git_add", {"success": False, "error": error_msg}, level="error")
+            except Exception:
+                pass
             return {
                 "git_add_success": False,
                 "response": f"❌ Git 提交流程终止\n\n{error_msg}",
@@ -1325,6 +1333,10 @@ def git_commit_message_generator_node(state: AgentState) -> dict:
             # 生成失败
             error_msg = result_text
             print(f"[Commit 生成] ❌ 生成失败")
+            try:
+                log_json_event(_log, "git_commit_msg", {"success": False, "error": error_msg}, level="error")
+            except Exception:
+                pass
             return {
                 "git_commit_message_generated": False,
                 "response": f"❌ Git 提交流程终止\n\n步骤 1: ✅ 已暂存变更\n步骤 2: ❌ {error_msg}",
@@ -1366,6 +1378,10 @@ def git_commit_message_generator_node(state: AgentState) -> dict:
         
         print(f"[Commit 生成] ✅ 生成完成")
         print(f"[Commit 生成] 消息: {commit_message}")
+        try:
+            log_json_event(_log, "git_commit_msg", {"success": True, "length": len(commit_message)})
+        except Exception:
+            pass
         
         return {
             "git_commit_message_generated": True,
@@ -1376,6 +1392,10 @@ def git_commit_message_generator_node(state: AgentState) -> dict:
     
     except Exception as e:
         print(f"[Commit 生成] ❌ 异常: {e}")
+        try:
+            log_json_event(_log, "git_commit_msg", {"success": False, "error": str(e)}, level="error")
+        except Exception:
+            pass
         return {
             "git_commit_message_generated": False,
             "response": f"❌ Git 提交流程终止\n\n步骤 1: ✅ 已暂存变更\n步骤 2: ❌ 生成 commit 消息失败: {str(e)}",
@@ -1407,6 +1427,10 @@ def git_commit_executor_node(state: AgentState) -> dict:
         if result["success"]:
             commit_hash = result.get("commit_hash", "")
             print(f"[Git Commit] ✅ {result['message']}")
+            try:
+                log_json_event(_log, "git_commit", {"success": True, "hash": commit_hash[:7] if commit_hash else ""})
+            except Exception:
+                pass
             
             # 生成最终响应
             response = f"""
@@ -1432,6 +1456,10 @@ def git_commit_executor_node(state: AgentState) -> dict:
         else:
             error_msg = result.get("error", "git commit 失败")
             print(f"[Git Commit] ❌ {error_msg}")
+            try:
+                log_json_event(_log, "git_commit", {"success": False, "error": error_msg}, level="error")
+            except Exception:
+                pass
             
             response = f"""❌ Git 提交流程失败
 
@@ -1487,6 +1515,10 @@ def git_pull_node(state: AgentState) -> dict:
             has_updates = result.get("has_updates", False)
             message = result["message"]
             print(f"[Git Pull] {message}")
+            try:
+                log_json_event(_log, "git_pull", {"success": True, "has_updates": has_updates})
+            except Exception:
+                pass
             
             return {
                 "git_pull_success": True,
@@ -1496,6 +1528,10 @@ def git_pull_node(state: AgentState) -> dict:
         else:
             error_msg = result.get("error", "git pull 失败")
             print(f"[Git Pull] ❌ {error_msg}")
+            try:
+                log_json_event(_log, "git_pull", {"success": False, "error": error_msg}, level="error")
+            except Exception:
+                pass
             return {
                 "git_pull_success": False,
                 "response": f"❌ Git 工作流终止\n\n⬇️  Pull: ❌ {error_msg}",
@@ -1550,6 +1586,10 @@ def git_push_node(state: AgentState) -> dict:
         
         if result["success"]:
             print(f"[Git Push] ✅ {result['message']}")
+            try:
+                log_json_event(_log, "git_push", {"success": True, "branch": branch})
+            except Exception:
+                pass
             
             # 生成最终响应
             files_count = state.get("git_files_count", 0)
@@ -1585,6 +1625,10 @@ def git_push_node(state: AgentState) -> dict:
         else:
             error_msg = result.get("error", "git push 失败")
             print(f"[Git Push] ❌ {error_msg}")
+            try:
+                log_json_event(_log, "git_push", {"success": False, "branch": branch, "error": error_msg}, level="error")
+            except Exception:
+                pass
             
             commit_hash = state.get("git_commit_hash", "")
             response = f"""❌ Git 工作流失败

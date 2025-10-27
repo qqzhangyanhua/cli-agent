@@ -5,11 +5,12 @@
 
 import subprocess
 import sys
+import time
 import shlex
 from typing import Dict
 import src.core.agent_config as config
 from src.core.agent_memory import memory
-from src.core.logger import get_logger
+from src.core.logger import get_logger, log_json_event
 
 _log = get_logger("exec")
 
@@ -84,6 +85,7 @@ def execute_terminal_command(command: str) -> Dict:
     # 选择 shell 模式
     use_shell = config.SECURITY_SHELL_BY_DEFAULT or is_risky
 
+    started = time.monotonic()
     try:
         if use_shell:
             _log.debug("shell 模式执行: %s", command)
@@ -114,7 +116,23 @@ def execute_terminal_command(command: str) -> Dict:
         
         # 记录到命令历史
         memory.add_command(command, output, result.returncode == 0)
-        
+        duration_ms = int((time.monotonic() - started) * 1000)
+
+        # 结构化事件
+        try:
+            log_json_event(_log, "command_exec", {
+                "cmd": command,
+                "success": result.returncode == 0,
+                "returncode": result.returncode,
+                "shell": use_shell,
+                "cwd": work_dir,
+                "duration_ms": duration_ms,
+                "out_len": len(output or ""),
+                "err_len": len(result.stderr or "") if result.stderr is not None else 0,
+            })
+        except Exception:
+            pass
+
         return {
             "success": result.returncode == 0,
             "output": output,
@@ -122,12 +140,40 @@ def execute_terminal_command(command: str) -> Dict:
         }
     
     except subprocess.TimeoutExpired:
+        # 结构化事件（超时）
+        try:
+            duration_ms = int((time.monotonic() - started) * 1000)
+            log_json_event(_log, "command_exec", {
+                "cmd": command,
+                "success": False,
+                "returncode": None,
+                "shell": use_shell,
+                "cwd": work_dir,
+                "duration_ms": duration_ms,
+                "timeout": True,
+            }, level="warning")
+        except Exception:
+            pass
         return {
             "success": False,
             "output": "",
-            "error": f"⏱️ 命令执行超时(>{COMMAND_TIMEOUT}秒)"
+            "error": f"⏱️ 命令执行超时(>{config.COMMAND_TIMEOUT}秒)"
         }
     except Exception as e:
+        # 结构化事件（异常）
+        try:
+            duration_ms = int((time.monotonic() - started) * 1000)
+            log_json_event(_log, "command_exec", {
+                "cmd": command,
+                "success": False,
+                "returncode": None,
+                "shell": use_shell,
+                "cwd": work_dir,
+                "duration_ms": duration_ms,
+                "error": str(e),
+            }, level="error")
+        except Exception:
+            pass
         return {
             "success": False,
             "output": "",

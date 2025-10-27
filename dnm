@@ -60,7 +60,7 @@ from src.ui.file_reference_parser import update_working_directory
 from src.ui.interactive_file_selector import update_selector_working_directory
 from src.ui.input_handlers import smart_input_handler
 from src.core.agent_monitoring import get_monitoring_dashboard
-from src.core.logger import set_level as set_log_level, get_logger
+from src.core.logger import set_level as set_log_level, get_logger, enable_json_file_logging
 
 _log = get_logger("cli")
 
@@ -165,6 +165,14 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "--log-level", dest="log_level", type=str, default=None,
         help="设置日志级别（DEBUG/INFO/WARNING/ERROR）"
+    )
+    parser.add_argument(
+        "--no-json-log", dest="no_json_log", action="store_true",
+        help="禁用独立 JSON 结构化日志文件输出"
+    )
+    parser.add_argument(
+        "--json-log-path", dest="json_log_path", type=str, default=None,
+        help="指定 JSON 结构化日志文件路径（默认 ~/.dnm/dnm-structured.log）"
     )
 
     return parser.parse_args()
@@ -346,6 +354,12 @@ def main() -> int:
         set_log_level(args.log_level)
         if not args.quiet:
             print(f"🔧 日志级别: {args.log_level.upper()}")
+
+    # 启用独立 JSON 日志文件（可禁用/自定义路径）
+    if not args.no_json_log:
+        json_path = enable_json_file_logging(args.json_log_path)
+        if json_path and not args.quiet:
+            print(f"🧾 结构化日志: {json_path}")
 
     # 覆盖安全相关配置（运行时）
     if args.assume_yes:

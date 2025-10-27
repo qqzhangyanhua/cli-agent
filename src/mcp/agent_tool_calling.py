@@ -18,7 +18,7 @@ from src.tools.auto_commit_tools import auto_commit_tool, git_pull_tool, git_pus
 from src.tools.project_manager_tools import project_manager_tools, start_project_tool, build_project_tool, diagnose_project_tool, stop_project_tool
 from src.tools.daily_report_tools import daily_report_tools, generate_daily_report_tool
 from src.core.json_utils import extract_json_str, safe_json_loads
-from src.core.logger import get_logger
+from src.core.logger import get_logger, log_json_event
 
 _log = get_logger("tool-agent")
 
@@ -338,11 +338,22 @@ def _call_langchain_tool(tool_name: str, tool_args: dict) -> str:
     if tool_name in langchain_tools:
         tool = langchain_tools[tool_name]
         # LangChain Tool 需要 JSON 字符串作为输入
-        if tool_args:
-            return tool.func(json.dumps(tool_args, ensure_ascii=False))
-        else:
-            return tool.func("")
+        payload = json.dumps(tool_args, ensure_ascii=False) if tool_args else ""
+        result_text = tool.func(payload)
+        try:
+            log_json_event(_log, "tool_call", {
+                "tool": tool_name,
+                "tool_type": "langchain",
+                "success": True,
+            })
+        except Exception:
+            pass
+        return result_text
 
+    try:
+        log_json_event(_log, "tool_call", {"tool": tool_name, "tool_type": "langchain", "success": False, "error": "unknown_tool"}, level="error")
+    except Exception:
+        pass
     return f"❌ 未知的 LangChain 工具: {tool_name}"
 
 

@@ -17,6 +17,7 @@ from src.core.logger import get_logger
 
 _log = get_logger("mcp")
 from src.core.agent_metrics import get_metrics_collector
+from src.core.logger import log_json_event, get_logger
 
 
 class MCPManager:
@@ -741,6 +742,16 @@ class MCPManager:
                         "param_count": len(func_params)
                     }
                     
+                    # 结构化事件
+                    try:
+                        log_json_event(get_logger("mcp"), "tool_call", {
+                            "tool": tool_name,
+                            "tool_type": "builtin",
+                            "success": True,
+                            "param_count": len(func_params),
+                        })
+                    except Exception:
+                        pass
                     return result
 
                 elif tool["type"] == "mcp":
@@ -750,16 +761,34 @@ class MCPManager:
                         "server": tool["server"]
                     }
                     
-                    return self.call_mcp_server(
+                    result = self.call_mcp_server(
                         server_name=tool["server"],
                         tool_name=tool["method"],
                         params=kwargs
                     )
+                    try:
+                        log_json_event(get_logger("mcp"), "tool_call", {
+                            "tool": tool_name,
+                            "tool_type": "mcp",
+                            "server": tool["server"],
+                            "success": bool(result.get("success", False)) if isinstance(result, dict) else True,
+                        })
+                    except Exception:
+                        pass
+                    return result
 
                 else:
                     return {"success": False, "error": f"未知的工具类型: {tool['type']}"}
 
             except Exception as e:
+                try:
+                    log_json_event(get_logger("mcp"), "tool_call", {
+                        "tool": tool_name,
+                        "success": False,
+                        "error": str(e),
+                    }, level="error")
+                except Exception:
+                    pass
                 return {"success": False, "error": f"工具执行失败: {str(e)}"}
 
     def list_available_tools(self) -> List[Dict]:
