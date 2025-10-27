@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 from langchain_core.tools import Tool
 
-from src.core.agent_config import WORKING_DIRECTORY
+from src.core.agent_config import WORKING_DIRECTORY, EMPTY_STATE_MESSAGE, PROCESS_STATE_FILE, PROCESS_HISTORY_FILE
 
 
 class ProjectDetector:
@@ -219,8 +219,9 @@ class ProcessManager:
     """全局进程管理器 - 跟踪后台运行的开发服务器 (持久化)"""
 
     def __init__(self):
-        # 持久化文件路径
-        self.state_file = Path.home() / ".dnm_processes.json"
+        # 持久化文件路径（可配置）
+        self.state_file = Path(PROCESS_STATE_FILE)
+        self.history_file = Path(PROCESS_HISTORY_FILE)
         self.processes: Dict[int, Dict] = {}
         self._load()
 
@@ -246,6 +247,39 @@ class ProcessManager:
         except Exception as e:
             print(f"[进程管理] 保存状态失败: {e}")
 
+    def _append_history(self, entry: Dict):
+        """追加历史记录（失败不影响主流程）"""
+        try:
+            history = []
+            if self.history_file.exists():
+                with open(self.history_file, 'r') as f:
+                    history = json.load(f)
+            if not isinstance(history, list):
+                history = []
+            history.append(entry)
+            with open(self.history_file, 'w') as f:
+                json.dump(history, f, indent=2)
+        except Exception as e:
+            print(f"[进程管理] 保存历史失败: {e}")
+
+    def _read_history(self) -> List[Dict]:
+        try:
+            if self.history_file.exists():
+                with open(self.history_file, 'r') as f:
+                    data = json.load(f)
+                    return data if isinstance(data, list) else []
+        except Exception as e:
+            print(f"[进程管理] 读取历史失败: {e}")
+        return []
+
+    def get_last_run(self) -> Optional[Dict]:
+        """获取最近一次运行记录（优先返回 stop 事件，其次 start 事件）"""
+        history = self._read_history()
+        for item in reversed(history):
+            if item.get("event") in ("stop", "start"):
+                return item
+        return None
+
     def _cleanup_dead(self):
         """清理已死进程"""
         for pid in list(self.processes.keys()):
@@ -267,9 +301,33 @@ class ProcessManager:
         self._save()
         print(f"[进程管理] 注册 PID={pid}, 端口={port}, 日志={log_file}")
 
+        # 写入历史（start 事件）
+        self._append_history({
+            "event": "start",
+            "pid": pid,
+            "command": command,
+            "type": process_type,
+            "port": port,
+            "log_file": log_file,
+            "started_at": time.time()
+        })
+
     def unregister(self, pid: int):
         """注销进程"""
         if pid in self.processes:
+            # 在删除前记录 stop 历史
+            info = self.processes.get(pid, {})
+            self._append_history({
+                "event": "stop",
+                "pid": pid,
+                "command": info.get("command", ""),
+                "type": info.get("type", ""),
+                "port": info.get("port", ""),
+                "log_file": info.get("log_file", ""),
+                "started_at": info.get("started_at"),
+                "ended_at": time.time()
+            })
+
             del self.processes[pid]
             self._save()
 
@@ -861,7 +919,7 @@ def stop_project_tool_func(input_str: str) -> str:
 {chr(10).join(f'  • PID {k}' for k in killed)}
 """
             else:
-                return "⚠️  没有运行中的项目进程"
+                return f"⚠️  {EMPTY_STATE_MESSAGE}"
 
     except Exception as e:
         return f"❌ 停止失败: {str(e)}"
@@ -882,14 +940,17 @@ def diagnose_project_tool_func(input_str: str) -> str:
                 pass
 
         result = "🔍 项目诊断报告\n\n"
+        has_any_output = False  # 是否有任何有效诊断输出（用于空结果兜底）
 
         # 检查进程
         if pid:
             try:
                 os.kill(int(pid), 0)
                 result += f"✅ 进程 {pid} 正在运行\n"
+                has_any_output = True
             except ProcessLookupError:
                 result += f"❌ 进程 {pid} 不存在\n"
+                has_any_output = True
 
         # 检查端口
         if port:
@@ -905,8 +966,10 @@ def diagnose_project_tool_func(input_str: str) -> str:
                     result += f"✅ 端口 {port} 正在被监听\n"
                 else:
                     result += f"❌ 端口 {port} 没有被监听\n"
+                has_any_output = True
             except:
                 result += f"⚠️  无法检查端口 {port}\n"
+                has_any_output = True
 
         # 显示所有运行中的项目
         running = process_manager.get_running()
@@ -914,6 +977,31 @@ def diagnose_project_tool_func(input_str: str) -> str:
             result += "\n运行中的项目:\n"
             for pid, info in running.items():
                 result += f"  • PID {pid}: {info['command']} (端口: {info['port']})\n"
+            has_any_output = True
+
+        # 兜底：如果没有任何有效诊断信息与运行中项目，明确给出提示
+        if not has_any_output:
+            result += f"{EMPTY_STATE_MESSAGE}\n"
+            # 附加最近一次运行信息（如有）
+            last = process_manager.get_last_run()
+            if last:
+                def _fmt(ts):
+                    try:
+                        return time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(ts)) if ts else ""
+                    except Exception:
+                        return str(ts)
+                result += "\n最近一次运行:\n"
+                result += f"  • 命令: {last.get('command', '')}\n"
+                if last.get('port'):
+                    result += f"  • 端口: {last.get('port')}\n"
+                if last.get('log_file'):
+                    result += f"  • 日志: {last.get('log_file')}\n"
+                if last.get('event') == 'stop':
+                    result += f"  • 启动时间: {_fmt(last.get('started_at'))}\n"
+                    result += f"  • 结束时间: {_fmt(last.get('ended_at'))}\n"
+                else:
+                    result += f"  • 启动时间: {_fmt(last.get('started_at'))}\n"
+                    result += "  • 状态: 运行记录未正常结束\n"
 
         return result
 

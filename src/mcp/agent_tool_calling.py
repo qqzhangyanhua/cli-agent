@@ -554,6 +554,26 @@ def simple_tool_calling_node(state: dict, enable_streaming: bool = True) -> dict
         tool_name = tool_choice.get("tool", "none")
         tool_args = tool_choice.get("args", {})
 
+        # 诊断端口兜底：当选择了 diagnose_project 但未提取到端口参数时，
+        # 从原始用户输入中尝试解析端口号，提升健壮性（示例：“查看3000端口调用情况”）
+        if tool_name == "diagnose_project":
+            try:
+                if not tool_args or not tool_args.get("port"):
+                    import re
+                    # 优先匹配 “端口 3000” 或 “端口:3000/端口：3000”
+                    m = re.search(r"(?:端口|port)\s*[：:]?\s*(\d{2,5})", user_input, re.IGNORECASE)
+                    if not m:
+                        # 匹配 “3000端口”
+                        m = re.search(r"\b(\d{2,5})\b\s*端口", user_input)
+                    if not m:
+                        # 匹配 “localhost:3000”
+                        m = re.search(r"localhost\s*[:：]\s*(\d{2,5})", user_input, re.IGNORECASE)
+                    if m:
+                        tool_args = dict(tool_args or {})
+                        tool_args["port"] = m.group(1)
+            except Exception:
+                pass
+
         print(f"[工具选择] 选择工具: {tool_name}")
         if tool_args:
             print(f"[工具选择] 参数: {tool_args}")

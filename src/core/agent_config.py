@@ -54,6 +54,9 @@ __all__ = [
     "SECURITY_CONFIRM_ON_RISKY",
     "SECURITY_SHELL_BY_DEFAULT",
     "SECURITY_ALLOWED_PREFIXES",
+    "EMPTY_STATE_MESSAGE",
+    "PROCESS_STATE_FILE",
+    "PROCESS_HISTORY_FILE",
 ]
 
 # ============================================
@@ -169,6 +172,31 @@ DAILY_REPORT_DIR = _config.get("daily_report", {}).get("directory", "daily_repor
 
 # 是否自动保存日报文件
 AUTO_SAVE_DAILY_REPORT = _config.get("daily_report", {}).get("auto_save", True)
+
+# ============================================
+# UI/消息配置
+# ============================================
+
+# 统一的空状态提示语
+EMPTY_STATE_MESSAGE = _config.get("messages", {}).get("empty_state", "没有运行的项目")
+
+# ============================================
+# 进程状态与历史配置
+# ============================================
+
+_paths_cfg = _config.get("paths", {})
+
+# 进程状态文件（跟踪当前运行中的进程）
+PROCESS_STATE_FILE = _paths_cfg.get(
+    "process_state_file",
+    os.path.join(os.path.expanduser("~"), ".dnm_processes.json")
+)
+
+# 进程历史文件（记录最近运行记录）
+PROCESS_HISTORY_FILE = _paths_cfg.get(
+    "process_history_file",
+    os.path.join(os.path.expanduser("~"), ".dnm_process_history.json")
+)
 
 # ============================================
 # 状态类型定义
