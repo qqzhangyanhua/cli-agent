@@ -1,0 +1,7 @@
+# tools
+
+- 类型: config_key
+- 来源: /Users/zhangyanhua/Desktop/AI/tushare/quantification/example/.mcp_tools_cache.json
+
+## 摘要
+类型: dict

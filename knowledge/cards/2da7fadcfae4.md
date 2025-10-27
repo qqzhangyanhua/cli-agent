@@ -1,0 +1,7 @@
+# register_error_handler
+
+- 类型: function
+- 来源: /Users/zhangyanhua/Desktop/AI/tushare/quantification/example/src/core/agent_resilience.py
+
+## 摘要
+注册错误处理器

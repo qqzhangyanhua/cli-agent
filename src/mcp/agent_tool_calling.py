@@ -15,8 +15,9 @@ from src.tools.todo_tools import todo_tools, add_todo_tool, query_todo_tool
 from src.tools.git_commit_tools import generate_commit_tool
 from src.tools.code_review_tools import code_review_tool
 from src.tools.auto_commit_tools import auto_commit_tool, git_pull_tool, git_push_tool
-from src.tools.project_manager_tools import project_manager_tools, start_project_tool, build_project_tool, diagnose_project_tool, stop_project_tool
+from src.tools.project_manager import project_manager_tools, start_project_tool, build_project_tool, diagnose_project_tool, stop_project_tool
 from src.tools.daily_report_tools import daily_report_tools, generate_daily_report_tool
+from src.tools.knowledge_project import knowledge_project_tools, knowledge_project_tool
 from src.core.json_utils import extract_json_str, safe_json_loads
 from src.core.logger import get_logger, log_json_event
 
@@ -226,6 +227,13 @@ def _get_all_available_tools() -> list:
             "params": ["work_dir", "template", "save_file"]
         }
     ]
+
+    # 知识化项目工具
+    langchain_tools_info.append({
+        "name": "knowledge_project",
+        "description": "自动知识化项目：扫描代码与文档，生成知识库（knowledge/）。支持 action=init|update|export。",
+        "params": ["action", "work_dir"]
+    })
     
     # 合并所有工具
     all_tools = mcp_tools + langchain_tools_info
@@ -297,6 +305,7 @@ def _infer_intent_from_tool(tool_name: str) -> str:
         "diagnose_project": "diagnose_project",
         "stop_project": "stop_project",
         "generate_daily_report": "daily_report",
+        "knowledge_project": "question",  # 直接返回最终响应
     }
 
     # 如果在映射表中，返回对应意图
@@ -333,6 +342,7 @@ def _call_langchain_tool(tool_name: str, tool_args: dict) -> str:
         "diagnose_project": diagnose_project_tool,
         "stop_project": stop_project_tool,
         "generate_daily_report": generate_daily_report_tool,
+        "knowledge_project": knowledge_project_tool,
     }
 
     if tool_name in langchain_tools:
@@ -592,7 +602,7 @@ def simple_tool_calling_node(state: dict, enable_streaming: bool = True) -> dict
         # 1. LangChain 工具（已封装的内置工具）
         if tool_name in ["add_todo", "query_todo", "generate_commit", "auto_commit",
                          "git_pull", "git_push", "code_review", "start_project", "build_project", 
-                         "diagnose_project", "stop_project", "generate_daily_report"]:
+                         "diagnose_project", "stop_project", "generate_daily_report", "knowledge_project"]:
             result_text = _call_langchain_tool(tool_name, tool_args)
             return {
                 "intent": intent,

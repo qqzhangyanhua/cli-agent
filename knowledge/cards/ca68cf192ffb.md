@@ -1,0 +1,7 @@
+# With working directory
+
+- 类型: heading
+- 来源: /Users/zhangyanhua/Desktop/AI/tushare/quantification/example/docs/CLAUDE.md
+
+## 摘要
+# CLAUDE.md This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository. ## Project Overview This is **AI Agent CLI** (ai-agent) - an intelligent terminal assistant that allows users to control the command line using natural language. It supports file operations, code execution, MCP (Model Context Protocol) integration, and intelligent file references via 

@@ -1,0 +1,7 @@
+# 查看帮助
+
+- 类型: heading
+- 来源: /Users/zhangyanhua/Desktop/AI/tushare/quantification/example/docs/WINDOWS_INSTALLATION.md
+
+## 摘要
+# DNM CLI - Windows 安装指南 ## 🚀 快速开始 ### 最简单的安装方法（推荐） ```powershell # 1. 打开 PowerShell # 2. 进入项目目录 cd cli-agent # 3. 运行 Python 安装脚本 python install.py ``` 安装完成后，重新打开终端，输入 `dnm --version` 验证。 --- ## 📋 安装选项 ### 选项1: Python 安装脚本（推荐）✅ **优点:** - ✅ 最简单、最可靠 - ✅ 自动检测环境 - ✅ 跨平台兼容 - ✅ 详细的错误提示 **步骤:** ```powershell # 基本安装 python install.py # 自定义安装目录 python install.py --dir "C:\your\custom\path" # 跳过依赖安装（如果已安装） 

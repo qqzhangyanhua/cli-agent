@@ -1,0 +1,7 @@
+# RetryPolicy
+
+- 类型: class
+- 来源: /Users/zhangyanhua/Desktop/AI/tushare/quantification/example/src/core/agent_resilience.py
+
+## 摘要
+重试策略配置

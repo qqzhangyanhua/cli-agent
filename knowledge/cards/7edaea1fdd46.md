@@ -1,0 +1,7 @@
+# write_file
+
+- 类型: function
+- 来源: /Users/zhangyanhua/Desktop/AI/tushare/quantification/example/test/terminal_agent_mcp.py
+
+## 摘要
+写入文件

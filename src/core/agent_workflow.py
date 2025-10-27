@@ -4,7 +4,7 @@
 
 from langgraph.graph import StateGraph, END
 from src.core.agent_config import AgentState
-from src.core.agent_nodes import (
+from src.core.nodes import (
     file_reference_processor,
     command_generator,
     command_executor,

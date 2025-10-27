@@ -1,0 +1,7 @@
+# 测试步骤
+
+- 类型: heading
+- 来源: /Users/zhangyanhua/Desktop/AI/tushare/quantification/example/docs/test_file_ref.md
+
+## 摘要
+# @ 文件引用测试说明 ## 预期行为 当你输入 `@README.md` 后： 1. **应该看到：** ``` ✅ 检测到文件: @README.md 💡 请继续输入操作，例如: 总结内容、翻译、有哪些配置项 👤 你: ``` 2. **然后你输入操作：** ``` 👤 你: 总结这个文档 ``` 3. **最终执行：** ``` @README.md 总结这个文档 ``` ## 如果没有看到提示 说明代码没有更新，请： ```powershell # 1. 完全退出 dnm（Ctrl+C） # 2. 手动复制文件 Copy-Item "D:\AI\cli-agent\dnm" "C:\Users\Administrator\AppData\Local\Programs\dnm\dnm" -Force # 3. 重新启动 dnm ``` ## 测试步骤 1. 输入: `@README

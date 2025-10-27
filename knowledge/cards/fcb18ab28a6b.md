@@ -1,0 +1,7 @@
+# 步骤1: 安装
+
+- 类型: heading
+- 来源: /Users/zhangyanhua/Desktop/AI/tushare/quantification/example/docs/QUICK_START.md
+
+## 摘要
+# 🚀 AI Agent CLI - 快速开始 ## 📦 5分钟安装指南 ### 步骤1: 安装 ```bash cd /Users/zhangyanhua/Desktop/AI/tushare/quantification/example ./install.sh ``` ### 步骤2: 配置PATH（如果需要） ```bash # 添加到 ~/.zshrc 或 ~/.bashrc echo 'export PATH="${HOME}/.local/bin:${PATH}"' >> ~/.zshrc source ~/.zshrc ``` ### 步骤3: 测试 ```bash ai-agent --version ``` 看到版本号就成功了！✅ --- ## 🎯 3种使用方式 ### 方式1: 交互模式（推荐新手） ```bash ai-agent ``` 然后就可以对话了： ```

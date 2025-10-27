@@ -18,7 +18,9 @@
       "Read(//Users/zhangyanhua/Desktop/AI/ai-wedding/**)",
       "Read(//Users/zhangyanhua/**)",
       "Bash(ps:*)",
-      "Read(//private/tmp/**)"
+      "Read(//private/tmp/**)",
+      "Bash(mkdir:*)",
+      "Bash(python3 -m py_compile:*)"
     ],
     "deny": [],
     "ask": []

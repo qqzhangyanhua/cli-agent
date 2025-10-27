@@ -1,0 +1,7 @@
+# ✨ 核心特性
+
+- 类型: heading
+- 来源: /Users/zhangyanhua/Desktop/AI/tushare/quantification/example/docs/QUICK_START_FILE_REFERENCE.md
+
+## 摘要
+# @ 文件引用功能 - 快速开始 ## 🚀 5 分钟上手 ### 第 1 步：启动程序 ```bash dnm # 或 ai-agent ``` ### 第 2 步：输入 @ ``` 👤 你: @ ``` **立即显示文件列表**（无需按 Tab）！ ### 第 3 步：选择文件 - 继续输入过滤：`@agent` - 使用 `↑` `↓` 选择文件 - 按 `Enter` 确认 ### 第 4 步：继续对话 ``` 👤 你: @agent_config.py 这个文件是做什么的？ 🤖 助手: 这个文件包含智能体的配置... ``` ## ✨ 核心特性 ### 自动显示 ✅ 输入 `@` 后立即显示文件列表 ✅ 无需按 Tab 或任何额外操作 ### 智能搜索 ``` @cfg → agent_config.py @wkf → agent_workflow.py @ui → agent_
