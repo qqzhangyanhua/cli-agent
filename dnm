@@ -41,6 +41,7 @@ import sys
 import os
 import argparse
 import signal
+import uuid
 from pathlib import Path
 from typing import Optional
 
@@ -50,6 +51,7 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 from src.core.agent_types import create_initial_state
+import src.core.agent_config as agent_config
 from src.core.agent_config import AgentStateDict
 from src.core.agent_memory import memory
 from src.core.agent_workflow import build_agent
@@ -58,6 +60,9 @@ from src.ui.file_reference_parser import update_working_directory
 from src.ui.interactive_file_selector import update_selector_working_directory
 from src.ui.input_handlers import smart_input_handler
 from src.core.agent_monitoring import get_monitoring_dashboard
+from src.core.logger import set_level as set_log_level, get_logger
+
+_log = get_logger("cli")
 
 # 尝试导入智能文件输入（IDE 风格）- 用于目录更新
 try:
@@ -142,6 +147,26 @@ def parse_arguments() -> argparse.Namespace:
         help="设置工作目录（默认：当前目录）",
     )
 
+    # 安全与执行相关开关
+    parser.add_argument(
+        "-y", "--yes", "--no-confirm",
+        dest="assume_yes",
+        action="store_true",
+        help="对潜在风险命令自动确认（禁用二次确认）",
+    )
+    parser.add_argument(
+        "--shell", dest="force_shell", action="store_true",
+        help="默认使用 shell 执行命令"
+    )
+    parser.add_argument(
+        "--no-shell", dest="no_shell", action="store_true",
+        help="默认不使用 shell 执行命令（即使包含元字符也尽量拆分执行）"
+    )
+    parser.add_argument(
+        "--log-level", dest="log_level", type=str, default=None,
+        help="设置日志级别（DEBUG/INFO/WARNING/ERROR）"
+    )
+
     return parser.parse_args()
 
 
@@ -167,7 +192,14 @@ def execute_single_command(command: str, quiet: bool = False) -> int:
         initial_state = create_initial_state(command)
 
         # 执行工作流（需要转换为字典格式）
-        result = agent.invoke(initial_state.to_dict())
+        req_id = uuid.uuid4().hex[:8]
+        os.environ["DNM_REQ_ID"] = req_id
+        _log.info("[req:%s] 单次命令开始", req_id)
+        try:
+            result = agent.invoke(initial_state.to_dict())
+        finally:
+            _log.info("[req:%s] 单次命令结束", req_id)
+            os.environ.pop("DNM_REQ_ID", None)
 
         # 显示结果
         # 注意：问答节点（question_answerer）已经流式打印了，不需要重复显示
@@ -255,12 +287,18 @@ def interactive_mode(quiet: bool = False, no_memory: bool = False) -> None:
                 continue
 
             print()  # 空行
+            req_id = uuid.uuid4().hex[:8]
+            _log.info("[req:%s] 用户输入: %s", req_id, user_input)
 
             # 构建初始状态
             initial_state = create_initial_state(user_input)
 
             # 执行工作流（需要转换为字典格式）
-            result = agent.invoke(initial_state.to_dict())
+            os.environ["DNM_REQ_ID"] = req_id
+            try:
+                result = agent.invoke(initial_state.to_dict())
+            finally:
+                os.environ.pop("DNM_REQ_ID", None)
 
             # 显示响应
             # 注意：问答节点已经流式打印，其他类型需要格式化输出
@@ -279,6 +317,7 @@ def interactive_mode(quiet: bool = False, no_memory: bool = False) -> None:
                 memory.add_interaction(
                     user_input, result["response"], result.get("intent", "unknown")
                 )
+            _log.info("[req:%s] 完成，intent=%s", req_id, result.get("intent", "unknown"))
 
         except KeyboardInterrupt:
             print("\n\n👋 检测到中断信号，退出程序...\n")
@@ -301,6 +340,23 @@ def interactive_mode(quiet: bool = False, no_memory: bool = False) -> None:
 def main() -> int:
     """主函数"""
     args = parse_arguments()
+
+    # 设置日志级别
+    if args.log_level:
+        set_log_level(args.log_level)
+        if not args.quiet:
+            print(f"🔧 日志级别: {args.log_level.upper()}")
+
+    # 覆盖安全相关配置（运行时）
+    if args.assume_yes:
+        agent_config.SECURITY_CONFIRM_ON_RISKY = False
+        _log.info("已启用自动确认风险命令（--yes/--no-confirm）")
+    if args.force_shell:
+        agent_config.SECURITY_SHELL_BY_DEFAULT = True
+        _log.info("已启用默认 shell 执行（--shell）")
+    if args.no_shell:
+        agent_config.SECURITY_SHELL_BY_DEFAULT = False
+        _log.info("已禁用默认 shell 执行（--no-shell）")
 
     # 设置工作目录
     if args.working_dir:
@@ -331,7 +387,9 @@ def main() -> int:
     # 判断模式
     if args.command and not args.interactive:
         # 单次命令模式 - 将命令列表用空格连接
+        # 生成请求ID以便日志追踪
         command_str = " ".join(args.command)
+        _log.info("执行单次命令: %s", command_str)
         exit_code = execute_single_command(command_str, args.quiet)
         return exit_code
     else:

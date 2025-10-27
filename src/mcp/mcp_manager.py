@@ -4,6 +4,7 @@
 """
 
 import subprocess
+import os
 import json
 import threading
 import time
@@ -12,6 +13,9 @@ from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FutureTimeoutError
 from datetime import datetime, timedelta
 from src.mcp.mcp_filesystem import fs_tools
+from src.core.logger import get_logger
+
+_log = get_logger("mcp")
 from src.core.agent_metrics import get_metrics_collector
 
 
@@ -184,15 +188,30 @@ class MCPManager:
         try:
             with open(config_path, "r", encoding="utf-8") as f:
                 self.config = json.load(f)
-            print(f"✅ 已加载MCP配置: {config_path}")
+            _log.info(f"已加载MCP配置: %s", config_path)
 
             if "mcpServers" in self.config:
                 for name, server_config in self.config["mcpServers"].items():
+                    # 展开环境变量与用户目录
+                    cmd = server_config.get("command", "")
+                    args = server_config.get("args", [])
+                    if isinstance(cmd, str):
+                        cmd = os.path.expandvars(os.path.expanduser(cmd))
+                    if isinstance(args, list):
+                        args = [os.path.expandvars(os.path.expanduser(a)) if isinstance(a, str) else a for a in args]
+
+                    # 解析相对路径（相对当前工作目录）
+                    if isinstance(cmd, str) and cmd and not os.path.isabs(cmd):
+                        if os.path.exists(cmd):
+                            pass  # 使用相对路径本身
+                    server_config["command"] = cmd
+                    server_config["args"] = args
+
                     self.servers[name] = server_config
-                    print(f"   📡 注册服务器: {name}")
+                    _log.info("注册MCP服务器: %s", name)
 
         except Exception as e:
-            print(f"⚠️ 加载配置失败: {e}")
+            _log.warning("加载MCP配置失败: %s", e)
 
     def _register_filesystem_tools(self):
         """注册内置文件系统工具"""

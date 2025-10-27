@@ -11,6 +11,9 @@ from src.core.agent_llm import get_llm_stats, reset_llm_stats
 from src.core.agent_metrics import get_metrics_collector
 from src.core.agent_monitoring import get_monitoring_dashboard
 from src.core.agent_resilience import get_resilience_manager
+from src.core.logger import get_logger
+
+_log = get_logger("ui")
 
 
 def print_header():
@@ -261,6 +264,12 @@ def handle_special_commands(user_input: str) -> bool:
         
         print(f"  • 总 Token: {llm_stats['session_summary']['total_tokens']['total']:,}")
         print("─" * 80 + "\n")
+        try:
+            _log.info("查看统计: total_calls=%s, total_tokens=%s",
+                      llm_stats['session_summary']['total_calls'],
+                      llm_stats['session_summary']['total_tokens']['total'])
+        except Exception:
+            pass
         return False
     
     # 系统健康检查
@@ -291,6 +300,10 @@ def handle_special_commands(user_input: str) -> bool:
                 print(f"  • {rec}")
         
         print("─" * 80 + "\n")
+        try:
+            _log.info("查看健康: overall=%s, score=%.1f", health.overall_status, health.performance_score)
+        except Exception:
+            pass
         return False
     
     # 查看错误统计
@@ -317,6 +330,11 @@ def handle_special_commands(user_input: str) -> bool:
                 print(f"  {emoji} {name}: {breaker['state']} (失败: {breaker['failure_count']})")
         
         print("─" * 80 + "\n")
+        try:
+            _log.info("查看错误: total_errors=%s, recoveries=%s",
+                      status['total_errors'], status['total_recoveries'])
+        except Exception:
+            pass
         return False
     
     # 重置性能计数器

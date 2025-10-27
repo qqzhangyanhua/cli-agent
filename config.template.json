@@ -13,10 +13,13 @@
       "temperature": 0
     }
   },
-  "working_directory": "/Users/zhangyanhua/Desktop/AI/tushare/quantification/example",
+  "working_directory": "",
   "security": {
     "dangerous_commands": ["rm -rf", "sudo rm", "chmod 777", "format", "del /f"],
-    "command_timeout": 10
+    "command_timeout": 10,
+    "confirm_on_risky": true,
+    "shell_by_default": false,
+    "allowed_command_prefixes": ["git", "ls", "cat", "pwd", "python", "python3", "pip", "echo"]
   },
   "memory": {
     "max_conversation_history": 10,

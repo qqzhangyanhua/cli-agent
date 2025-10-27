@@ -17,6 +17,10 @@ from src.tools.code_review_tools import code_review_tool
 from src.tools.auto_commit_tools import auto_commit_tool, git_pull_tool, git_push_tool
 from src.tools.project_manager_tools import project_manager_tools, start_project_tool, build_project_tool, diagnose_project_tool, stop_project_tool
 from src.tools.daily_report_tools import daily_report_tools, generate_daily_report_tool
+from src.core.json_utils import extract_json_str, safe_json_loads
+from src.core.logger import get_logger
+
+_log = get_logger("tool-agent")
 
 
 def create_tool_agent():
@@ -343,12 +347,8 @@ def _call_langchain_tool(tool_name: str, tool_args: dict) -> str:
 
 
 def extract_json(text: str) -> str:
-    """从文本中提取 JSON"""
-    if "```json" in text:
-        return text.split("```json")[1].split("```")[0].strip()
-    elif "```" in text:
-        return text.split("```")[1].split("```")[0].strip()
-    return text.strip()
+    """兼容旧名，委托到健壮实现"""
+    return extract_json_str(text)
 
 
 def _format_mcp_tool_result(tool_name: str, mcp_result: dict) -> str:
@@ -535,7 +535,10 @@ def simple_tool_calling_node(state: dict, enable_streaming: bool = True) -> dict
 
         # 提取 JSON
         response_text = extract_json(response_text)
-        tool_choice = json.loads(response_text)
+        obj, err = safe_json_loads(response_text)
+        if err:
+            raise json.JSONDecodeError(err, response_text, 0)
+        tool_choice = obj
 
         tool_name = tool_choice.get("tool", "none")
         tool_args = tool_choice.get("args", {})

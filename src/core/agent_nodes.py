@@ -12,6 +12,10 @@ from src.core.agent_memory import memory
 from src.core.agent_utils import execute_terminal_command
 from src.core.agent_llm import llm, llm_code
 from src.mcp.mcp_manager import mcp_manager
+from src.core.json_utils import extract_json_str, safe_json_loads
+from src.core.logger import get_logger
+
+_log = get_logger("nodes")
 from src.tools.git_tools import git_tools
 from src.ui.file_reference_parser import parse_file_references, file_parser
 from src.tools.todo_manager import todo_manager
@@ -386,15 +390,20 @@ def multi_step_planner(state: AgentState) -> dict:
 只返回JSON:"""
 
     result = llm_code.invoke([HumanMessage(content=prompt)])
-    plan_text = result.content.strip()
+    plan_text = extract_json_str(result.content.strip())
 
-    if "```json" in plan_text:
-        plan_text = plan_text.split("```json")[1].split("```")[0].strip()
-    elif "```" in plan_text:
-        plan_text = plan_text.split("```")[1].split("```")[0].strip()
-
+    obj, err = safe_json_loads(plan_text)
+    if err:
+        print(f"[多步骤规划] JSON解析失败: {err}")
+        return {
+            "needs_file_creation": False,
+            "file_path": "",
+            "file_content": "",
+            "commands": [],
+            "error": "无法解析执行计划",
+        }
     try:
-        plan = json.loads(plan_text)
+        plan = obj
         print(f"[多步骤规划] 使用模型: {LLM_CONFIG2['model']}")
         print(f"            操作系统: {os_type}")
         print(f"            需要创建文件: {plan.get('needs_file_creation', False)}")
@@ -452,22 +461,20 @@ def mcp_tool_planner(state: AgentState) -> dict:
 只返回JSON:"""
 
     result = llm_code.invoke([HumanMessage(content=prompt)])
-    plan_text = result.content.strip()
-
-    if "```json" in plan_text:
-        plan_text = plan_text.split("```json")[1].split("```")[0].strip()
-    elif "```" in plan_text:
-        plan_text = plan_text.split("```")[1].split("```")[0].strip()
-
+    plan_text = extract_json_str(result.content.strip())
+    obj, err = safe_json_loads(plan_text)
+    if err:
+        print(f"[MCP工具规划] JSON解析失败: {err}")
+        return {"mcp_tool": "", "mcp_params": {}, "error": "无法解析MCP工具规划"}
     try:
-        plan = json.loads(plan_text)
+        plan = obj
         print(f"[MCP工具规划] 使用模型: {LLM_CONFIG2['model']}")
         print(f"            工具: {plan.get('tool', 'unknown')}")
         print(f"            参数: {plan.get('params', {})}")
 
         return {"mcp_tool": plan.get("tool", ""), "mcp_params": plan.get("params", {})}
-    except json.JSONDecodeError as e:
-        print(f"[MCP工具规划] JSON解析失败: {e}")
+    except Exception as e:
+        print(f"[MCP工具规划] 解析失败: {e}")
         return {"mcp_tool": "", "mcp_params": {}, "error": "无法解析MCP工具规划"}
 
 
@@ -832,14 +839,13 @@ def todo_processor(state: AgentState) -> dict:
         result = llm.invoke([HumanMessage(content=prompt)])
         response_text = result.content.strip()
 
-        # 提取JSON
-        if "```json" in response_text:
-            response_text = response_text.split("```json")[1].split("```")[0].strip()
-        elif "```" in response_text:
-            response_text = response_text.split("```")[1].split("```")[0].strip()
-
+        # 提取并解析 JSON（健壮）
         try:
-            parsed = json.loads(response_text)
+            response_text = extract_json_str(response_text)
+            parsed_obj, err = safe_json_loads(response_text)
+            if err:
+                raise json.JSONDecodeError(err, response_text, 0)
+            parsed = parsed_obj
             date = parsed.get("date", "")
             time = parsed.get("time", "")
             content = parsed.get("content", "")
@@ -1080,7 +1086,11 @@ def data_conversion_processor(state: AgentState) -> dict:
         response_text = response_text.split("```")[1].split("```")[0].strip()
     
     try:
-        parsed = json.loads(response_text)
+        response_text = extract_json_str(response_text)
+        parsed_obj, err = safe_json_loads(response_text)
+        if err:
+            raise json.JSONDecodeError(err, response_text, 0)
+        parsed = parsed_obj
         operation = parsed.get("operation", "convert")
         source_format = parsed.get("source_format", "auto")
         target_format = parsed.get("target_format", "json")
