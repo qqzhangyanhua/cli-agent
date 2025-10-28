@@ -97,7 +97,7 @@ def get_config_dir() -> Path:
         return Path.home() / ".config" / "dnm"
 
 
-def copy_files(script_dir: Path, install_dir: Path):
+def copy_files(script_dir: Path, install_dir: Path, config_dir: Path):
     """复制文件到安装目录"""
     print()
     print_step("📋", "复制程序文件...", "yellow")
@@ -138,6 +138,26 @@ def copy_files(script_dir: Path, install_dir: Path):
             shutil.copy2(source, install_dir)
         else:
             print_step("⚠️", f"警告: 找不到 {config_file}", "yellow")
+    
+    # 🔧 复制 config.json 到全局配置目录（关键步骤）
+    config_source = script_dir / "config.json"
+    config_dest = config_dir / "config.json"
+    
+    if config_source.exists():
+        print_step("📝", "复制 config.json 到全局配置目录...", "yellow")
+        shutil.copy2(config_source, config_dest)
+        print_step("✅", f"已复制 config.json 到 {config_dest}", "green")
+        print_step("💡", "现在可以在任何目录使用 dnm 命令", "cyan")
+    else:
+        # 如果没有 config.json，则复制模板文件
+        template_source = script_dir / "config.template.json"
+        if template_source.exists():
+            print_step("⚠️", "未找到 config.json，复制模板文件", "yellow")
+            shutil.copy2(template_source, config_dest)
+            print_step("💡", f"请编辑 {config_dest} 填入你的 API 密钥", "cyan")
+        else:
+            print_step("❌", "错误: 找不到 config.json 或 config.template.json", "red")
+            sys.exit(1)
     
     # Windows 特殊处理：创建批处理启动器
     if platform.system() == "Windows":
@@ -333,7 +353,7 @@ def main():
     config_dir = create_config_dir()
     
     # 复制文件
-    copy_files(script_dir, install_dir)
+    copy_files(script_dir, install_dir, config_dir)
     
     # 设置 PATH
     path_ok = setup_path(install_dir)
