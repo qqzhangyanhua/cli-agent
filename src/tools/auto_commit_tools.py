@@ -202,6 +202,11 @@ def auto_commit_tool_func(user_request: str = "") -> str:
     # 第二步：生成 commit 消息
     print(f"\n💡 步骤 2/3: 生成 commit 消息")
     
+    # 获取当前分支信息
+    branch_info = git_tools.get_current_branch()
+    current_branch = branch_info.get("branch", "unknown") if branch_info.get("success") else "unknown"
+    print(f"[Git Commit] 当前分支: {current_branch}")
+    
     # 分析变更并生成消息
     analysis = git_tools.analyze_changes()
     
@@ -267,6 +272,9 @@ def auto_commit_tool_func(user_request: str = "") -> str:
     # 生成 commit 消息 - 使用详细版prompt（与git_commit_tools.py保持一致）
     prompt = f"""你是一个专业的Git commit消息生成器。你的任务是仔细阅读代码变更的diff，生成非常详细、精确的commit消息。
 
+🌿 **分支信息**:
+- 当前分支: {current_branch}
+
 📊 **变更统计**:
 - 总计: {len(analysis['files_changed'])} 个文件
 - 详细: {file_stats_str}
@@ -327,44 +335,50 @@ def auto_commit_tool_func(user_request: str = "") -> str:
 格式要求:
 - 遵循Conventional Commits规范
 - 使用中文描述
-- 格式: `<type>: <subject>`
+- 格式: `<type>: <subject> [<branch>]`
 - type从上面选择最合适的
 - subject要**极其具体**地描述变更内容
+- 在消息末尾添加分支信息 [<branch>]（如果不是main/master分支）
 
 **好的commit消息示例**（基于diff深度分析）:
-✅ feat: 添加Todo管理工具并集成LangChain Tool接口
-   → 说明了具体功能（Todo管理）+ 技术实现（LangChain Tool）
+✅ feat: 添加Todo管理工具并集成LangChain Tool接口 [feature/todo-tools]
+   → 说明了具体功能（Todo管理）+ 技术实现（LangChain Tool）+ 分支信息
 
-✅ refactor: 重构意图分析为LLM驱动的工具选择，移除硬编码规则
-   → 说明了重构内容（意图分析）+ 新方案（LLM驱动）+ 删除内容（硬编码规则）
+✅ refactor: 重构意图分析为LLM驱动的工具选择，移除硬编码规则 [refactor/intent-analysis]
+   → 说明了重构内容（意图分析）+ 新方案（LLM驱动）+ 删除内容（硬编码规则）+ 分支信息
 
 ✅ feat: 实现流式LLM输出，优化问答响应体验
-   → 说明了新功能（流式输出）+ 影响范围（问答）+ 效果（优化体验）
+   → 说明了新功能（流式输出）+ 影响范围（问答）+ 效果（优化体验）（main分支无需标注）
 
-✅ chore: 删除28个markdown文档和测试文件，清理Python缓存
-   → 精确数量（28个）+ 文件类型（markdown文档和测试文件）+ 清理内容（Python缓存）
+✅ chore: 删除28个markdown文档和测试文件，清理Python缓存 [cleanup/docs]
+   → 精确数量（28个）+ 文件类型（markdown文档和测试文件）+ 清理内容（Python缓存）+ 分支信息
 
-✅ fix: 修复Git commit工具动态导入失败，改为静态导入
-   → 问题定位（Git commit工具）+ 错误原因（动态导入失败）+ 解决方案（静态导入）
+✅ fix: 修复Git commit工具动态导入失败，改为静态导入 [hotfix/import-error]
+   → 问题定位（Git commit工具）+ 错误原因（动态导入失败）+ 解决方案（静态导入）+ 分支信息
 
 ⚠️ **特别注意**:
 - 不要只看文件名！必须看diff内容分析实际代码变更
 - 如果删除了很多文档，必须说明具体数量和类型
 - 如果修改了核心模块，必须说明修改了什么行为/逻辑
 - 如果新增了功能，必须说明功能的具体作用
+- **分支信息处理**：
+  • 如果当前分支是 main、master 或 unknown，则不添加分支标签
+  • 其他分支都要在消息末尾添加 [分支名] 标签
+  • 分支标签放在消息的最后，用方括号包围
 
 📤 **输出格式要求**:
 
 **简单变更**（<5个文件 或 只有文档/配置变更）:
 只返回一行commit消息：
 ```
-<type>: <详细的subject描述>
+<type>: <详细的subject描述> [分支名]
 ```
+注意：如果分支是 main/master/unknown，则省略 [分支名] 部分
 
 **复杂变更**（≥10个文件 或 涉及多个模块）:
 返回多行格式：
 ```
-<type>: <简洁的subject总结>（50字内）
+<type>: <简洁的subject总结> [分支名]
 
 <空行>
 <body部分 - 详细说明>:
@@ -373,6 +387,7 @@ def auto_commit_tool_func(user_request: str = "") -> str:
 - 第3个重要变更（基于diff分析）
 - ...（3-5行，每行说明一个具体变更）
 ```
+注意：如果分支是 main/master/unknown，则省略 [分支名] 部分
 
 🚀 **现在开始分析**:
 请仔细阅读上面的diff内容，按照4步框架进行深度分析，然后生成commit消息。
@@ -381,6 +396,9 @@ def auto_commit_tool_func(user_request: str = "") -> str:
 1. **必须阅读diff的具体内容**，不能只看文件名列表
 2. **必须分析代码层面的变更**（函数、类、逻辑、导入等）
 3. **commit消息要反映diff的实际内容**，而不是猜测
+4. **必须根据当前分支 {current_branch} 决定是否添加分支标签**：
+   - 如果是 main/master/unknown 分支：不添加分支标签
+   - 其他分支：在消息末尾添加 [{current_branch}]
 
 只返回commit消息内容，不要输出分析过程:"""
     
