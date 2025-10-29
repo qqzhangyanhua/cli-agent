@@ -335,27 +335,38 @@ def auto_commit_tool_func(user_request: str = "") -> str:
 格式要求:
 - 遵循Conventional Commits规范
 - 使用中文描述
-- 格式: `<branch>分支: <type>: <subject>`
+- Title格式: `<type>: <subject>`
+- Description格式: `【<branch>分支】\n<详细描述>`
 - branch是当前分支名称
 - type从上面选择最合适的
 - subject要**极其具体**地描述变更内容
-- 所有分支都要添加分支前缀
+- 分支信息放在description的第一行
 
 **好的commit消息示例**（基于diff深度分析）:
-✅ feature/todo-tools分支: feat: 添加Todo管理工具并集成LangChain Tool接口
-   → 分支前缀 + 说明了具体功能（Todo管理）+ 技术实现（LangChain Tool）
 
-✅ refactor/intent-analysis分支: refactor: 重构意图分析为LLM驱动的工具选择，移除硬编码规则
-   → 分支前缀 + 说明了重构内容（意图分析）+ 新方案（LLM驱动）+ 删除内容（硬编码规则）
+✅ 示例1（简单变更）:
+Title: feat: 添加Todo管理工具并集成LangChain Tool接口
+Description: 【feature/todo-tools分支】
+说明了具体功能（Todo管理）+ 技术实现（LangChain Tool）
 
-✅ main分支: feat: 实现流式LLM输出，优化问答响应体验
-   → 分支前缀 + 说明了新功能（流式输出）+ 影响范围（问答）+ 效果（优化体验）
+✅ 示例2（复杂变更）:
+Title: refactor: 重构意图分析为LLM驱动的工具选择
+Description: 【refactor/intent-analysis分支】
+- 移除硬编码的意图识别规则
+- 集成LangChain工具选择机制  
+- 优化工具调用的准确性和灵活性
 
-✅ cleanup/docs分支: chore: 删除28个markdown文档和测试文件，清理Python缓存
-   → 分支前缀 + 精确数量（28个）+ 文件类型（markdown文档和测试文件）+ 清理内容（Python缓存）
+✅ 示例3（主分支）:
+Title: feat: 实现流式LLM输出，优化问答响应体验
+Description: 【main分支】
+说明了新功能（流式输出）+ 影响范围（问答）+ 效果（优化体验）
 
-✅ hotfix/import-error分支: fix: 修复Git commit工具动态导入失败，改为静态导入
-   → 分支前缀 + 问题定位（Git commit工具）+ 错误原因（动态导入失败）+ 解决方案（静态导入）
+✅ 示例4（清理操作）:
+Title: chore: 删除28个markdown文档和测试文件，清理Python缓存
+Description: 【cleanup/docs分支】
+- 删除过时的文档文件
+- 移除无用的测试文件
+- 清理Python缓存目录
 
 ⚠️ **特别注意**:
 - 不要只看文件名！必须看diff内容分析实际代码变更
@@ -363,25 +374,26 @@ def auto_commit_tool_func(user_request: str = "") -> str:
 - 如果修改了核心模块，必须说明修改了什么行为/逻辑
 - 如果新增了功能，必须说明功能的具体作用
 - **分支信息处理**：
-  • 所有分支都要添加分支前缀
-  • 格式：{current_branch}分支: <type>: <subject>
-  • 分支前缀放在消息的最开头
+  • Title不包含分支信息，只有 <type>: <subject>
+  • Description第一行必须是：【{current_branch}分支】
+  • 分支信息放在description开头，用【】包围
 
 📤 **输出格式要求**:
 
 **简单变更**（<5个文件 或 只有文档/配置变更）:
-只返回一行commit消息：
+返回两行格式：
 ```
-{current_branch}分支: <type>: <详细的subject描述>
+<type>: <详细的subject描述>
+
+【{current_branch}分支】
 ```
 
 **复杂变更**（≥10个文件 或 涉及多个模块）:
 返回多行格式：
 ```
-{current_branch}分支: <type>: <简洁的subject总结>
+<type>: <简洁的subject总结>
 
-<空行>
-<body部分 - 详细说明>:
+【{current_branch}分支】
 - 第1个重要变更（基于diff分析）
 - 第2个重要变更（基于diff分析）
 - 第3个重要变更（基于diff分析）
@@ -395,9 +407,10 @@ def auto_commit_tool_func(user_request: str = "") -> str:
 1. **必须阅读diff的具体内容**，不能只看文件名列表
 2. **必须分析代码层面的变更**（函数、类、逻辑、导入等）
 3. **commit消息要反映diff的实际内容**，而不是猜测
-4. **必须在消息开头添加分支前缀**：
-   - 格式：{current_branch}分支: <type>: <subject>
-   - 所有分支都要添加前缀，包括 main 分支
+4. **必须按照新格式生成commit消息**：
+   - Title: <type>: <subject>（不包含分支信息）
+   - Description: 【{current_branch}分支】开头，然后是详细描述
+   - 中间用空行分隔
 
 只返回commit消息内容，不要输出分析过程:"""
     
