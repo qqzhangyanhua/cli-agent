@@ -1,11 +1,6 @@
 {
   "mcpServers": {
 
-    "mcp-stock": {
-      "command": "node",
-      "args": [
-        "/Users/zhangyanhua/Documents/augment-projects/mcp-stock/build/index.js"
-      ]
-    }
+ 
   }
 }

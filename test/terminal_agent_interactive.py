@@ -27,7 +27,7 @@ from mcp_manager import mcp_manager  # MCP管理器
 LLM_CONFIG = {
     "model": "kimi-k2-0905-preview",
     "base_url": "https://api.moonshot.cn/v1",
-    "api_key": "sk-6xmKFtCUO7Z3qJnIoAa8D3lI6DJTfvzSYxMbafNT2FFHFDwd",
+    "api_key": "sk-",
     "temperature": 0,
 }
 
@@ -35,7 +35,7 @@ LLM_CONFIG = {
 LLM_CONFIG2 = {
     "model": "claude-3-5-sonnet",  # 使用Claude作为代码生成模型
     "base_url": "https://sdwfger.edu.kg/v1",
-    "api_key": "sk-lCVcio0vmI5U16K1ru9gdJ7ZsszU3lsKnUurlNjhROjWLwxU",
+    "api_key": "sk-",
     "temperature": 0,
 }
 
