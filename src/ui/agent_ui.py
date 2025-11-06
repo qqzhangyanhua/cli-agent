@@ -241,9 +241,28 @@ def handle_special_commands(user_input: str) -> bool:
     
     # 生成日报
     if user_input_lower in ['/report', '/日报']:
-        # 这里简单显示提示，实际日报生成会由工作流处理
-        print("\n📊 提示: 请使用自然语言生成日报")
-        print("例如: '生成日报' 或 '今日总结' 或 '工作报告'\n")
+        try:
+            from src.tools.daily_report_tools import generate_daily_report_func
+            import json
+            import os
+            
+            print("\n📊 正在生成今日工作日报...")
+            
+            # 调用日报生成，禁用文件保存
+            params = {
+                "work_dir": os.getcwd(),
+                "template": "standard",
+                "save_file": False  # 禁用文件保存
+            }
+            
+            result = generate_daily_report_func(json.dumps(params))
+            print(result)
+            
+        except Exception as e:
+            print(f"❌ 生成日报时出错: {e}")
+            print("💡 提示: 也可以使用自然语言生成日报")
+            print("例如: '生成日报' 或 '今日总结' 或 '工作报告'\n")
+        
         return False
     
     # 查看性能统计

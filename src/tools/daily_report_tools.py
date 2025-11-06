@@ -567,7 +567,9 @@ def generate_daily_report_func(input_str: str) -> str:
             except Exception as e:
                 print(f"⚠️ 保存日报文件时出错: {e}")
         
-        return f"""✅ 日报生成完成！
+        # 根据是否保存文件返回不同格式
+        if save_file:
+            return f"""✅ 日报生成完成！
 
 {report}
 
@@ -576,6 +578,11 @@ def generate_daily_report_func(input_str: str) -> str:
 - 命令执行: {len(data['commands'])} 条  
 - AI 交互: {len(data['conversations'])} 次
 """
+        else:
+            # UI调用时的简洁格式
+            return f"""{report}
+
+📊 数据统计: Git提交 {len(data['git_commits'])} 条 | 命令执行 {len(data['commands'])} 条 | AI交互 {len(data['conversations'])} 次"""
         
     except Exception as e:
         return f"❌ 生成日报时发生错误: {str(e)}"
