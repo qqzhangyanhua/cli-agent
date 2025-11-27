@@ -1,0 +1,38 @@
+{
+    "llm_configs": {
+      "primary": {
+        "model": "kimi-k2-0905-preview",
+        "base_url": "",
+        "api_key": "sk-6xwd",
+        "temperature": 0
+      },
+      "secondary": {
+        "model": "claude-4-sonnet",
+        "base_url": "",
+        "api_key": "sk65oT",
+        "temperature": 0
+      }
+    },
+    "working_directory": "",
+    "security": {
+      "dangerous_commands": ["rm -rf", "sudo rm", "chmod 777", "format", "del /f"],
+      "command_timeout": 10,
+      "confirm_on_risky": true,
+      "shell_by_default": false,
+      "allowed_command_prefixes": ["git", "ls", "cat", "pwd", "python", "python3", "pip", "echo"]
+    },
+    "memory": {
+      "max_conversation_history": 10,
+      "max_command_history": 20
+    },
+    "daily_report": {
+      "templates": ["standard", "technical", "summary"],
+      "default_template": "standard",
+      "directory": "daily_reports",
+      "auto_save": false
+    },
+    "headers": {
+      "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    }
+  }
+  

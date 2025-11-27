@@ -549,7 +549,7 @@ def generate_daily_report_func(input_str: str) -> str:
         generator = DailyReportGenerator()
         report = generator.generate_report(data, template_type)
         
-        # 保存到文件（可选）
+        # 保存到文件（可选）- 默认关闭，只生成不保存
         if save_file:
             today = datetime.now().strftime("%Y-%m-%d")
             filename = f"daily_report_{today}.md"
@@ -566,6 +566,7 @@ def generate_daily_report_func(input_str: str) -> str:
                 print(f"📄 日报已保存到: {filepath}")
             except Exception as e:
                 print(f"⚠️ 保存日报文件时出错: {e}")
+        # 注释：默认不保存文件，只在终端显示日报内容
         
         # 根据是否保存文件返回不同格式
         if save_file:

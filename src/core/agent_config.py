@@ -170,8 +170,8 @@ DEFAULT_DAILY_REPORT_TEMPLATE = _config.get("daily_report", {}).get("default_tem
 # 日报保存目录
 DAILY_REPORT_DIR = _config.get("daily_report", {}).get("directory", "daily_reports")
 
-# 是否自动保存日报文件
-AUTO_SAVE_DAILY_REPORT = _config.get("daily_report", {}).get("auto_save", True)
+# 是否自动保存日报文件 - 默认关闭，只生成不保存
+AUTO_SAVE_DAILY_REPORT = _config.get("daily_report", {}).get("auto_save", False)
 
 # ============================================
 # UI/消息配置
